@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "media-backup"
+version = "0.1.0"
+description = "NAS media backup server — receives photos and videos from iOS/Android"
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.0",
+    "flask>=3.0",
+]
+
+[project.scripts]
+media-backup = "server.__main__:main"
