@@ -48,6 +48,7 @@ dependencies {
 
     // JSch for SFTP uploads
     implementation("com.github.mwiede:jsch:0.2.17")
+    implementation("org.bouncycastle:bcprov-jdk15to18:1.78.1")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
