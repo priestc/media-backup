@@ -1,5 +1,7 @@
 import Citadel
 import Foundation
+import NIOCore
+import NIOSSH
 
 /// Manages a single SSH/SFTP connection for the duration of a backup session.
 actor SFTPService {
@@ -11,7 +13,7 @@ actor SFTPService {
         let client = try await SSHClient.connect(
             host: host,
             port: port,
-            authenticationMethod: .publicKeyBased(
+            authenticationMethod: .publicKey(
                 username: username,
                 privateKey: NIOSSHPrivateKey(ed25519Key: privateKey)
             ),
