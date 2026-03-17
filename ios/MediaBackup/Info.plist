@@ -4,5 +4,9 @@
 <dict>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Used to back up your photos and videos to your home server.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Used to back up your photos and videos to your home server.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Used to scan the API key QR code.</string>
 </dict>
 </plist>
