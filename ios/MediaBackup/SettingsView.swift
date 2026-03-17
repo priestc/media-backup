@@ -8,6 +8,7 @@ struct SettingsView: View {
 
     @State private var testResult: String? = nil
     @State private var isTesting = false
+    @State private var showScanner = false
 
     var body: some View {
         NavigationView {
@@ -25,10 +26,18 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Authentication")) {
-                    TextField("API Key", text: $apiKey)
-                        .font(.system(.body, design: .monospaced))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    HStack {
+                        TextField("API Key", text: $apiKey)
+                            .font(.system(.body, design: .monospaced))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button {
+                            showScanner = true
+                        } label: {
+                            Image(systemName: "qrcode.viewfinder")
+                                .font(.title2)
+                        }
+                    }
                 }
 
                 Section {
@@ -52,6 +61,11 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showScanner) {
+                QRScannerSheet { scanned in
+                    apiKey = scanned
                 }
             }
         }

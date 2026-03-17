@@ -66,5 +66,30 @@ def show_key():
         click.echo("No key configured. Run 'media-backup setup'.")
 
 
+@main.command("api-key")
+def api_key():
+    """Display the API key as a QR code for easy scanning from the iOS/Android app."""
+    cfg = _load_config()
+    key = cfg.get("api_key")
+    if not key:
+        click.echo("No key configured. Run 'media-backup setup' first.")
+        return
+
+    try:
+        import qrcode
+    except ImportError:
+        click.echo(f"API key: {key}")
+        click.echo("(Install 'qrcode' to display as QR code)")
+        return
+
+    qr = qrcode.QRCode(border=1)
+    qr.add_data(key)
+    qr.make(fit=True)
+
+    click.echo(f"\nAPI key: {key}\n")
+    click.echo("Scan this QR code from the app:\n")
+    qr.print_ascii(invert=True)
+
+
 if __name__ == "__main__":
     main()
