@@ -35,7 +35,7 @@ actor SFTPService {
         try await mkdirP(sftp: sftp, path: remoteDir)
 
         // Write file
-        var buffer = ByteBuffer(bytes: data)
+        let buffer = ByteBuffer(bytes: data)
         try await sftp.withFile(filePath: remotePath, flags: [.write, .create, .truncate]) { file in
             try await file.write(buffer)
         }
