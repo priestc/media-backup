@@ -1,7 +1,5 @@
 import Citadel
 import Foundation
-import NIOCore
-import NIOSSH
 
 /// Manages a single SSH/SFTP connection for the duration of a backup session.
 actor SFTPService {

@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB002F69AE0E0011B5E4 /* Citadel */; };
-		AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB012F69AE0E0011B5E4 /* NIOCore */; };
-		AA01BB022F69AE0E0011B5E4 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB022F69AE0E0011B5E4 /* NIOSSH */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,8 +41,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */,
-				AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */,
-				AA01BB022F69AE0E0011B5E4 /* NIOSSH in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,8 +84,6 @@
 			name = MediaBackup;
 			packageProductDependencies = (
 				AA02BB002F69AE0E0011B5E4 /* Citadel */,
-				AA02BB012F69AE0E0011B5E4 /* NIOCore */,
-				AA02BB022F69AE0E0011B5E4 /* NIOSSH */,
 			);
 			productName = MediaBackup;
 			productReference = 9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */;
@@ -119,15 +113,13 @@
 			);
 			mainGroup = 9325ACA82F69AE0E0011B5E4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9325ACB22F69AE0E0011B5E4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			packageReferences = (
-				AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */,
-				AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */,
-				AA03BB022F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */,
-			);
 			targets = (
 				9325ACB02F69AE0E0011B5E4 /* MediaBackup */,
 			);
@@ -346,51 +338,6 @@
 		};
 /* End XCBuildConfiguration section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/orlandos-nl/Citadel";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.8.0;
-			};
-		};
-		AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.65.0;
-			};
-		};
-		AA03BB022F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio-ssh";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.8.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AA02BB002F69AE0E0011B5E4 /* Citadel */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */;
-			productName = Citadel;
-		};
-		AA02BB012F69AE0E0011B5E4 /* NIOCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */;
-			productName = NIOCore;
-		};
-		AA02BB022F69AE0E0011B5E4 /* NIOSSH */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA03BB022F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */;
-			productName = NIOSSH;
-		};
-/* End XCSwiftPackageProductDependency section */
-
 /* Begin XCConfigurationList section */
 		9325ACAC2F69AE0E0011B5E4 /* Build configuration list for PBXProject "MediaBackup" */ = {
 			isa = XCConfigurationList;
@@ -411,6 +358,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/orlandos-nl/Citadel";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA02BB002F69AE0E0011B5E4 /* Citadel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */;
+			productName = Citadel;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 	};
 	rootObject = 9325ACA92F69AE0E0011B5E4 /* Project object */;
 }
