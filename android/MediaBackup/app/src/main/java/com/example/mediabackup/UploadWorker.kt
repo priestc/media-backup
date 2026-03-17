@@ -16,36 +16,53 @@ class UploadWorker(appContext: Context, params: WorkerParameters) :
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val app      = applicationContext as MediaBackupApp
         val settings = app.settingsManager
-        val api      = ApiService(applicationContext)
 
-        val localURL     = settings.localURL.value
-        val tailscaleURL = settings.tailscaleURL.value
-        val apiKey       = settings.apiKey.value
+        val localHost     = settings.localHost.value
+        val tailscaleHost = settings.tailscaleHost.value
+        val port          = settings.port.value.toIntOrNull() ?: 22
+        val username      = settings.username.value
+        val password      = settings.password.value
+        val remotePath    = settings.remotePath.value
 
-        if (apiKey.isBlank() || (localURL.isBlank() && tailscaleURL.isBlank())) {
-            return@withContext Result.success()   // not configured yet
+        if (username.isBlank() || password.isBlank() || remotePath.isBlank() ||
+            (localHost.isBlank() && tailscaleHost.isBlank())) {
+            return@withContext Result.success()  // not configured yet
         }
 
-        val baseURL = api.resolveBaseURL(localURL, tailscaleURL, apiKey)
-            ?: return@withContext Result.retry()  // no connectivity, retry later
+        val sftp = SftpService(applicationContext)
 
-        val uploadedIds = prefs.getStringSet("ids", emptySet())!!
-            .mapNotNull { it.toLongOrNull() }.toMutableSet()
+        // Try local first, then Tailscale
+        var connected = false
+        for (host in listOf(localHost, tailscaleHost).filter { it.isNotBlank() }) {
+            try {
+                sftp.connect(host.trim(), port, username, password)
+                connected = true
+                break
+            } catch (_: Exception) {}
+        }
+        if (!connected) return@withContext Result.retry()
 
-        val pending = MediaScanner.scanNewFiles(applicationContext, uploadedIds)
-        if (pending.isEmpty()) return@withContext Result.success()
+        try {
+            val uploadedIds = prefs.getStringSet("ids", emptySet())!!
+                .mapNotNull { it.toLongOrNull() }.toMutableSet()
 
-        var failed = 0
-        for (file in pending) {
-            val ok = api.uploadFile(baseURL, apiKey, file)
-            if (ok) {
-                uploadedIds.add(file.id)
-                prefs.edit().putStringSet("ids", uploadedIds.map { it.toString() }.toSet()).apply()
-            } else {
-                failed++
+            val pending = MediaScanner.scanNewFiles(applicationContext, uploadedIds)
+            if (pending.isEmpty()) return@withContext Result.success()
+
+            var failed = 0
+            for (file in pending) {
+                val ok = sftp.uploadFile(file, remotePath)
+                if (ok) {
+                    uploadedIds.add(file.id)
+                    prefs.edit().putStringSet("ids", uploadedIds.map { it.toString() }.toSet()).apply()
+                } else {
+                    failed++
+                }
             }
-        }
 
-        if (failed > 0 && failed == pending.size) Result.retry() else Result.success()
+            if (failed > 0 && failed == pending.size) Result.retry() else Result.success()
+        } finally {
+            sftp.disconnect()
+        }
     }
 }

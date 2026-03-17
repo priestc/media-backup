@@ -94,10 +94,17 @@ struct ContentView: View {
         if uploader.isRunning {
             uploader.stop()
         } else {
-            let localURL     = UserDefaults.standard.string(forKey: "localURL") ?? ""
-            let tailscaleURL = UserDefaults.standard.string(forKey: "tailscaleURL") ?? ""
-            let apiKey       = UserDefaults.standard.string(forKey: "apiKey") ?? ""
-            Task { await uploader.startBackup(localURL: localURL, tailscaleURL: tailscaleURL, apiKey: apiKey) }
+            let d = UserDefaults.standard
+            Task {
+                await uploader.startBackup(
+                    localHost:     d.string(forKey: "sshLocalHost")    ?? "",
+                    tailscaleHost: d.string(forKey: "sshTailscaleHost") ?? "",
+                    port:          Int(d.string(forKey: "sshPort") ?? "22") ?? 22,
+                    username:      d.string(forKey: "sshUsername")     ?? "",
+                    password:      d.string(forKey: "sshPassword")     ?? "",
+                    remotePath:    d.string(forKey: "sshRemotePath")   ?? ""
+                )
+            }
         }
     }
 }

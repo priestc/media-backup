@@ -5,12 +5,12 @@ import UIKit
 
 @MainActor
 class PhotoUploader: ObservableObject {
-    @Published var isRunning      = false
-    @Published var statusMessage  = "Tap 'Start Backup' to begin"
-    @Published var uploadedCount  = 0
-    @Published var failedCount    = 0
-    @Published var totalPending   = 0
-    @Published var currentFile    = ""
+    @Published var isRunning     = false
+    @Published var statusMessage = "Tap 'Start Backup' to begin"
+    @Published var uploadedCount = 0
+    @Published var failedCount   = 0
+    @Published var totalPending  = 0
+    @Published var currentFile   = ""
 
     private let uploadedKey = "uploadedLocalIdentifiers"
     private var shouldStop  = false
@@ -25,41 +25,54 @@ class PhotoUploader: ObservableObject {
         UserDefaults.standard.set(Array(ids), forKey: uploadedKey)
     }
 
-    func stop() {
-        shouldStop = true
-    }
+    func stop() { shouldStop = true }
 
-    func startBackup(localURL: String, tailscaleURL: String, apiKey: String) async {
+    func startBackup(
+        localHost: String, tailscaleHost: String,
+        port: Int, username: String, password: String, remotePath: String
+    ) async {
         guard !isRunning else { return }
-        isRunning   = true
-        shouldStop  = false
+        isRunning     = true
+        shouldStop    = false
         uploadedCount = 0
         failedCount   = 0
 
         // Photo library authorization
-        let authStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        if authStatus == .notDetermined {
+        let auth = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if auth == .notDetermined {
             let result = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
             guard result == .authorized || result == .limited else {
                 statusMessage = "Photo access denied. Enable it in Settings → Privacy → Photos."
                 isRunning = false
                 return
             }
-        } else if authStatus == .denied || authStatus == .restricted {
+        } else if auth == .denied || auth == .restricted {
             statusMessage = "Photo access denied. Enable it in Settings → Privacy → Photos."
             isRunning = false
             return
         }
 
-        // Resolve active server URL
-        statusMessage = "Connecting to server…"
-        guard let baseURL = await resolveBaseURL(local: localURL, tailscale: tailscaleURL, apiKey: apiKey) else {
-            statusMessage = "Could not reach server. Check Settings."
+        // Connect via SSH — try local first, then Tailscale
+        statusMessage = "Connecting…"
+        let sftp = SFTPService()
+        var connected = false
+        for host in [localHost, tailscaleHost] {
+            let h = host.trimmingCharacters(in: .whitespaces)
+            guard !h.isEmpty else { continue }
+            do {
+                try await sftp.connect(host: h, port: port, username: username, password: password)
+                connected = true
+                break
+            } catch {}
+        }
+        guard connected else {
+            statusMessage = "Could not connect. Check SSH settings."
             isRunning = false
             return
         }
+        defer { Task { await sftp.disconnect() } }
 
-        // Fetch all assets not yet uploaded
+        // Fetch assets not yet uploaded
         let fetchOptions = PHFetchOptions()
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         let allAssets = PHAsset.fetchAssets(with: fetchOptions)
@@ -80,6 +93,7 @@ class PhotoUploader: ObservableObject {
         }
 
         statusMessage = "Uploading \(pending.count) file(s)…"
+        let deviceName = UIDevice.current.name
 
         for (i, asset) in pending.enumerated() {
             if shouldStop { break }
@@ -89,7 +103,18 @@ class PhotoUploader: ObservableObject {
             statusMessage = "Uploading \(i + 1)/\(pending.count): \(filename)"
 
             do {
-                try await uploadAsset(asset, filename: filename, baseURL: baseURL, apiKey: apiKey)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                defer { try? FileManager.default.removeItem(at: tempURL) }
+                try await writeAssetToFile(asset, destination: tempURL)
+
+                let data = try Data(contentsOf: tempURL)
+                let dateStr = datePath(asset.creationDate ?? Date())
+                let remoteFile = "\(remotePath)/\(deviceName)/\(dateStr)/\(filename)"
+
+                let exists = await sftp.fileExists(atPath: remoteFile)
+                if !exists {
+                    try await sftp.upload(data: data, toPath: remoteFile)
+                }
                 markUploaded(asset.localIdentifier)
                 uploadedCount += 1
             } catch {
@@ -108,95 +133,12 @@ class PhotoUploader: ObservableObject {
         isRunning = false
     }
 
-    // MARK: - URL resolution
+    // MARK: - Helpers
 
-    private func resolveBaseURL(local: String, tailscale: String, apiKey: String) async -> String? {
-        for raw in [local, tailscale] {
-            if let base = normalizeURL(raw), await canReach(baseURL: base, apiKey: apiKey) {
-                return base
-            }
-        }
-        return nil
-    }
-
-    private func canReach(baseURL: String, apiKey: String) async -> Bool {
-        guard let url = URL(string: "\(baseURL)/status") else { return false }
-        var req = URLRequest(url: url, timeoutInterval: 5)
-        req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        return (try? await URLSession.shared.data(for: req)) != nil
-    }
-
-    private func normalizeURL(_ raw: String) -> String? {
-        var s = raw.trimmingCharacters(in: .whitespaces)
-        guard !s.isEmpty else { return nil }
-        if !s.hasPrefix("http") { s = "http://" + s }
-        if s.hasSuffix("/") { s = String(s.dropLast()) }
-        return s
-    }
-
-    // MARK: - Upload
-
-    private func uploadAsset(_ asset: PHAsset, filename: String, baseURL: String, apiKey: String) async throws {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        defer { try? FileManager.default.removeItem(at: tempURL) }
-
-        try await writeAssetToFile(asset, destination: tempURL)
-
-        let takenAt  = asset.creationDate.map { ISO8601DateFormatter().string(from: $0) } ?? ""
-        let device   = UIDevice.current.name
-        let mimeType = asset.mediaType == .video ? "video/mp4" : "image/jpeg"
-
-        guard let uploadURL = URL(string: "\(baseURL)/upload") else { throw URLError(.badURL) }
-
-        let boundary = UUID().uuidString
-        var body = Data()
-
-        func field(_ name: String, _ value: String) {
-            body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".data(using: .utf8)!)
-        }
-
-        // File part
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
-        body.append(try Data(contentsOf: tempURL))
-        body.append("\r\n".data(using: .utf8)!)
-
-        field("filename", filename)
-        field("taken_at", takenAt)
-        field("device_name", device)
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-
-        var request = URLRequest(url: uploadURL, timeoutInterval: 300)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = body
-
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-    }
-
-    // MARK: - Asset extraction
-
-    private func writeAssetToFile(_ asset: PHAsset, destination: URL) async throws {
-        let resources = PHAssetResource.assetResources(for: asset)
-        guard let resource = resources.first(where: {
-            $0.type == .photo || $0.type == .video || $0.type == .fullSizePhoto || $0.type == .fullSizeVideo
-        }) ?? resources.first else {
-            throw URLError(.cannotLoadFromNetwork)
-        }
-
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let options = PHAssetResourceRequestOptions()
-            options.isNetworkAccessAllowed = true
-            PHAssetResourceManager.default().writeData(for: resource, toFile: destination, options: options) { error in
-                if let error { continuation.resume(throwing: error) }
-                else { continuation.resume() }
-            }
-        }
+    private func datePath(_ date: Date) -> String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy/MM/dd"
+        return fmt.string(from: date)
     }
 
     private func assetFilename(_ asset: PHAsset) -> String {
@@ -204,5 +146,22 @@ class PhotoUploader: ObservableObject {
         if let name = resources.first?.originalFilename, !name.isEmpty { return name }
         let ext = asset.mediaType == .video ? "mp4" : "jpg"
         return "\(asset.localIdentifier.prefix(8)).\(ext)"
+    }
+
+    private func writeAssetToFile(_ asset: PHAsset, destination: URL) async throws {
+        let resources = PHAssetResource.assetResources(for: asset)
+        guard let resource = resources.first(where: {
+            $0.type == .photo || $0.type == .video ||
+            $0.type == .fullSizePhoto || $0.type == .fullSizeVideo
+        }) ?? resources.first else {
+            throw URLError(.cannotLoadFromNetwork)
+        }
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            let options = PHAssetResourceRequestOptions()
+            options.isNetworkAccessAllowed = true
+            PHAssetResourceManager.default().writeData(for: resource, toFile: destination, options: options) { error in
+                if let error { cont.resume(throwing: error) } else { cont.resume() }
+            }
+        }
     }
 }

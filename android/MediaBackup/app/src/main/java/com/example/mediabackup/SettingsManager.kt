@@ -7,15 +7,32 @@ import kotlinx.coroutines.flow.StateFlow
 class SettingsManager(context: Context) {
     private val prefs = context.getSharedPreferences("media_backup_prefs", Context.MODE_PRIVATE)
 
-    private val _localURL     = MutableStateFlow(prefs.getString("localURL", "") ?: "")
-    private val _tailscaleURL = MutableStateFlow(prefs.getString("tailscaleURL", "") ?: "")
-    private val _apiKey       = MutableStateFlow(prefs.getString("apiKey", "") ?: "")
+    private fun flow(key: String, default: String = "") =
+        MutableStateFlow(prefs.getString(key, default) ?: default)
 
-    val localURL:     StateFlow<String> = _localURL
-    val tailscaleURL: StateFlow<String> = _tailscaleURL
-    val apiKey:       StateFlow<String> = _apiKey
+    private fun set(key: String, flow: MutableStateFlow<String>, value: String) {
+        prefs.edit().putString(key, value).apply()
+        flow.value = value
+    }
 
-    fun setLocalURL(v: String)     { prefs.edit().putString("localURL", v).apply();     _localURL.value = v }
-    fun setTailscaleURL(v: String) { prefs.edit().putString("tailscaleURL", v).apply(); _tailscaleURL.value = v }
-    fun setApiKey(v: String)       { prefs.edit().putString("apiKey", v).apply();       _apiKey.value = v }
+    private val _localHost     = flow("sshLocalHost")
+    private val _tailscaleHost = flow("sshTailscaleHost")
+    private val _port          = flow("sshPort", "22")
+    private val _username      = flow("sshUsername")
+    private val _password      = flow("sshPassword")
+    private val _remotePath    = flow("sshRemotePath")
+
+    val localHost:     StateFlow<String> = _localHost
+    val tailscaleHost: StateFlow<String> = _tailscaleHost
+    val port:          StateFlow<String> = _port
+    val username:      StateFlow<String> = _username
+    val password:      StateFlow<String> = _password
+    val remotePath:    StateFlow<String> = _remotePath
+
+    fun setLocalHost(v: String)     = set("sshLocalHost",     _localHost,     v)
+    fun setTailscaleHost(v: String) = set("sshTailscaleHost", _tailscaleHost, v)
+    fun setPort(v: String)          = set("sshPort",          _port,          v)
+    fun setUsername(v: String)      = set("sshUsername",      _username,      v)
+    fun setPassword(v: String)      = set("sshPassword",      _password,      v)
+    fun setRemotePath(v: String)    = set("sshRemotePath",    _remotePath,    v)
 }

@@ -1,43 +1,46 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("localURL")     private var localURL     = ""
-    @AppStorage("tailscaleURL") private var tailscaleURL = ""
-    @AppStorage("apiKey")       private var apiKey       = ""
-    @Environment(\.dismiss)     private var dismiss
+    @AppStorage("sshLocalHost")    private var localHost    = ""
+    @AppStorage("sshTailscaleHost") private var tailscaleHost = ""
+    @AppStorage("sshPort")         private var portStr      = "22"
+    @AppStorage("sshUsername")     private var username     = ""
+    @AppStorage("sshPassword")     private var password     = ""
+    @AppStorage("sshRemotePath")   private var remotePath   = ""
+    @Environment(\.dismiss)        private var dismiss
 
     @State private var testResult: String? = nil
     @State private var isTesting = false
-    @State private var showScanner = false
 
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Server"),
-                        footer: Text("Local is tried first. Tailscale is used as fallback when not on home WiFi.")) {
-                    TextField("192.168.1.x:8765  (Local)", text: $localURL)
+                        footer: Text("Local is tried first. Tailscale is used as fallback when away from home.")) {
+                    TextField("192.168.1.x  (Local)", text: $localHost)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    TextField("100.x.x.x:8765  (Tailscale)", text: $tailscaleURL)
+                    TextField("100.x.x.x  (Tailscale)", text: $tailscaleHost)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    TextField("SSH Port", text: $portStr)
+                        .keyboardType(.numberPad)
                 }
 
-                Section(header: Text("Authentication")) {
-                    HStack {
-                        TextField("API Key", text: $apiKey)
-                            .font(.system(.body, design: .monospaced))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        Button {
-                            showScanner = true
-                        } label: {
-                            Image(systemName: "qrcode.viewfinder")
-                                .font(.title2)
-                        }
-                    }
+                Section(header: Text("Credentials")) {
+                    TextField("Username", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    SecureField("Password", text: $password)
+                }
+
+                Section(header: Text("Destination"),
+                        footer: Text("Files are stored as: remote-path/device-name/YYYY/MM/DD/filename")) {
+                    TextField("/home/chris/photos", text: $remotePath)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
 
                 Section {
@@ -48,7 +51,8 @@ struct SettingsView: View {
                             Text("Test Connection")
                         }
                     }
-                    .disabled(isTesting || (localURL.isEmpty && tailscaleURL.isEmpty) || apiKey.isEmpty)
+                    .disabled(isTesting || username.isEmpty || password.isEmpty ||
+                              (localHost.isEmpty && tailscaleHost.isEmpty))
 
                     if let result = testResult {
                         Text(result)
@@ -63,63 +67,36 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showScanner) {
-                QRScannerSheet { scanned in
-                    apiKey = scanned
-                }
-            }
         }
-    }
-
-    private func normalizeURL(_ raw: String) -> String? {
-        var s = raw.trimmingCharacters(in: .whitespaces)
-        guard !s.isEmpty else { return nil }
-        if !s.hasPrefix("http") { s = "http://" + s }
-        if s.hasSuffix("/") { s = String(s.dropLast()) }
-        return s
     }
 
     private func testConnection() {
-        let candidates = [localURL, tailscaleURL].compactMap { normalizeURL($0) }
-        guard !candidates.isEmpty else { return }
-
+        let port = Int(portStr) ?? 22
         isTesting = true
         testResult = nil
 
-        let group = DispatchGroup()
-        var firstSuccess: String? = nil
-        let lock = NSLock()
+        Task {
+            let sftp = SFTPService()
+            var connectedHost: String? = nil
+            for host in [localHost, tailscaleHost] {
+                let h = host.trimmingCharacters(in: .whitespaces)
+                guard !h.isEmpty else { continue }
+                do {
+                    try await sftp.connect(host: h, port: port, username: username, password: password)
+                    connectedHost = h
+                    break
+                } catch {}
+            }
+            await sftp.disconnect()
 
-        for base in candidates {
-            guard let url = URL(string: "\(base)/status") else { continue }
-            var req = URLRequest(url: url, timeoutInterval: 8)
-            req.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-
-            group.enter()
-            URLSession.shared.dataTask(with: req) { data, response, _ in
-                if let http = response as? HTTPURLResponse, http.statusCode == 200,
-                   let data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    lock.lock()
-                    if firstSuccess == nil {
-                        let files = json["files"] as? Int ?? 0
-                        let mb    = json["size_mb"] as? Double ?? 0
-                        firstSuccess = "✓ Connected via \(base)\n\(files) files stored (\(mb, specifier: "%.1f") MB)"
-                    }
-                    lock.unlock()
+            await MainActor.run {
+                isTesting = false
+                if let host = connectedHost {
+                    testResult = "✓ Connected to \(host)"
+                } else {
+                    testResult = "Connection failed. Check host, credentials, and that SSH is enabled."
                 }
-                group.leave()
-            }.resume()
+            }
         }
-
-        group.notify(queue: .main) {
-            isTesting = false
-            testResult = firstSuccess ?? "Could not reach any server. Check URLs and API key."
-        }
-    }
-}
-
-extension String.StringInterpolation {
-    mutating func appendInterpolation(_ value: Double, specifier: String) {
-        appendLiteral(String(format: specifier, value))
     }
 }

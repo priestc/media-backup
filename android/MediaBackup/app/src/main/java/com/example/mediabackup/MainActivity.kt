@@ -8,6 +8,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -130,39 +132,66 @@ fun MainPanel(status: String, isRunning: Boolean, modifier: Modifier, onBackupNo
 
 @Composable
 fun SettingsPanel(settings: SettingsManager, modifier: Modifier, onClose: () -> Unit) {
-    val localURL     by settings.localURL.collectAsStateWithLifecycle()
-    val tailscaleURL by settings.tailscaleURL.collectAsStateWithLifecycle()
-    val apiKey       by settings.apiKey.collectAsStateWithLifecycle()
+    val localHost     by settings.localHost.collectAsStateWithLifecycle()
+    val tailscaleHost by settings.tailscaleHost.collectAsStateWithLifecycle()
+    val port          by settings.port.collectAsStateWithLifecycle()
+    val username      by settings.username.collectAsStateWithLifecycle()
+    val password      by settings.password.collectAsStateWithLifecycle()
+    val remotePath    by settings.remotePath.collectAsStateWithLifecycle()
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
         Text("Settings", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = localURL,
-            onValueChange = { settings.setLocalURL(it) },
+            value = localHost,
+            onValueChange = { settings.setLocalHost(it) },
             label = { Text("Local IP") },
-            placeholder = { Text("192.168.1.x:8765") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("192.168.1.x") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = tailscaleURL,
-            onValueChange = { settings.setTailscaleURL(it) },
+            value = tailscaleHost,
+            onValueChange = { settings.setTailscaleHost(it) },
             label = { Text("Tailscale IP") },
-            placeholder = { Text("100.x.x.x:8765") },
+            placeholder = { Text("100.x.x.x") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = port,
+            onValueChange = { settings.setPort(it) },
+            label = { Text("SSH Port") },
+            placeholder = { Text("22") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+            ),
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = username,
+            onValueChange = { settings.setUsername(it) },
+            label = { Text("SSH Username") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = password,
+            onValueChange = { settings.setPassword(it) },
+            label = { Text("SSH Password") },
             singleLine = true,
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = apiKey,
-            onValueChange = { settings.setApiKey(it) },
-            label = { Text("API Key") },
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-            modifier = Modifier.fillMaxWidth(),
+            value = remotePath,
+            onValueChange = { settings.setRemotePath(it) },
+            label = { Text("Remote Path") },
+            placeholder = { Text("/home/chris/photos") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(16.dp))
         Button(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
