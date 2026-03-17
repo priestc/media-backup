@@ -21,21 +21,21 @@ class UploadWorker(appContext: Context, params: WorkerParameters) :
         val tailscaleHost = settings.tailscaleHost.value
         val port          = settings.port.value.toIntOrNull() ?: 22
         val username      = settings.username.value
-        val password      = settings.password.value
         val remotePath    = settings.remotePath.value
 
-        if (username.isBlank() || password.isBlank() || remotePath.isBlank() ||
+        if (username.isBlank() || remotePath.isBlank() ||
             (localHost.isBlank() && tailscaleHost.isBlank())) {
             return@withContext Result.success()  // not configured yet
         }
 
+        val keyManager = (applicationContext as MediaBackupApp).keyManager
         val sftp = SftpService(applicationContext)
 
         // Try local first, then Tailscale
         var connected = false
         for (host in listOf(localHost, tailscaleHost).filter { it.isNotBlank() }) {
             try {
-                sftp.connect(host.trim(), port, username, password)
+                sftp.connect(host.trim(), port, username, keyManager.privateKeyPath)
                 connected = true
                 break
             } catch (_: Exception) {}

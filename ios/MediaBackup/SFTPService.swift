@@ -2,17 +2,22 @@ import Citadel
 import Foundation
 import NIOCore
 import NIOPosix
+import NIOSSH
 
 /// Manages a single SSH/SFTP connection for the duration of a backup session.
 actor SFTPService {
     private var sshClient: SSHClient?
     private var sftpClient: SFTPClient?
 
-    func connect(host: String, port: Int, username: String, password: String) async throws {
+    func connect(host: String, port: Int, username: String) async throws {
+        let privateKey = KeyManager.shared.privateKey
         let client = try await SSHClient.connect(
             host: host,
             port: port,
-            authenticationMethod: .passwordBased(username: username, password: password),
+            authenticationMethod: .publicKeyBased(
+                username: username,
+                privateKey: NIOSSHPrivateKey(ed25519Key: privateKey)
+            ),
             hostKeyValidator: .acceptAnything(),   // home NAS — no need for strict validation
             reconnect: .never
         )

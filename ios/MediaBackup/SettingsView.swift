@@ -5,12 +5,14 @@ struct SettingsView: View {
     @AppStorage("sshTailscaleHost") private var tailscaleHost = ""
     @AppStorage("sshPort")         private var portStr      = "22"
     @AppStorage("sshUsername")     private var username     = ""
-    @AppStorage("sshPassword")     private var password     = ""
     @AppStorage("sshRemotePath")   private var remotePath   = ""
     @Environment(\.dismiss)        private var dismiss
 
     @State private var testResult: String? = nil
     @State private var isTesting = false
+    @State private var keyCopied = false
+
+    private var publicKey: String { KeyManager.shared.publicKeyString }
 
     var body: some View {
         NavigationView {
@@ -33,7 +35,22 @@ struct SettingsView: View {
                     TextField("Username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    SecureField("Password", text: $password)
+                }
+
+                Section(
+                    header: Text("SSH Public Key"),
+                    footer: Text("Add this key to ~/.ssh/authorized_keys on your NAS to allow password-free login.")
+                ) {
+                    Text(publicKey)
+                        .font(.system(.caption, design: .monospaced))
+                        .lineLimit(3)
+                        .foregroundColor(.secondary)
+
+                    Button(keyCopied ? "Copied!" : "Copy Public Key") {
+                        UIPasteboard.general.string = publicKey
+                        keyCopied = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { keyCopied = false }
+                    }
                 }
 
                 Section(header: Text("Destination"),
@@ -51,7 +68,7 @@ struct SettingsView: View {
                             Text("Test Connection")
                         }
                     }
-                    .disabled(isTesting || username.isEmpty || password.isEmpty ||
+                    .disabled(isTesting || username.isEmpty ||
                               (localHost.isEmpty && tailscaleHost.isEmpty))
 
                     if let result = testResult {
@@ -82,7 +99,7 @@ struct SettingsView: View {
                 let h = host.trimmingCharacters(in: .whitespaces)
                 guard !h.isEmpty else { continue }
                 do {
-                    try await sftp.connect(host: h, port: port, username: username, password: password)
+                    try await sftp.connect(host: h, port: port, username: username)
                     connectedHost = h
                     break
                 } catch {}
@@ -94,7 +111,7 @@ struct SettingsView: View {
                 if let host = connectedHost {
                     testResult = "✓ Connected to \(host)"
                 } else {
-                    testResult = "Connection failed. Check host, credentials, and that SSH is enabled."
+                    testResult = "Connection failed. Check host, username, and that your public key is in authorized_keys."
                 }
             }
         }

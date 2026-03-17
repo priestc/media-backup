@@ -16,6 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -81,7 +83,7 @@ fun MediaBackupUI(app: MediaBackupApp, requestPermissions: () -> Unit, runNow: (
             }
         ) { padding ->
             if (showSettings) {
-                SettingsPanel(settings, modifier = Modifier.padding(padding)) {
+                SettingsPanel(settings, app.keyManager, modifier = Modifier.padding(padding)) {
                     showSettings = false
                 }
             } else {
@@ -131,13 +133,16 @@ fun MainPanel(status: String, isRunning: Boolean, modifier: Modifier, onBackupNo
 }
 
 @Composable
-fun SettingsPanel(settings: SettingsManager, modifier: Modifier, onClose: () -> Unit) {
+fun SettingsPanel(settings: SettingsManager, keyManager: KeyManager, modifier: Modifier, onClose: () -> Unit) {
     val localHost     by settings.localHost.collectAsStateWithLifecycle()
     val tailscaleHost by settings.tailscaleHost.collectAsStateWithLifecycle()
     val port          by settings.port.collectAsStateWithLifecycle()
     val username      by settings.username.collectAsStateWithLifecycle()
-    val password      by settings.password.collectAsStateWithLifecycle()
     val remotePath    by settings.remotePath.collectAsStateWithLifecycle()
+
+    val clipboard = LocalClipboardManager.current
+    var keyCopied by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
         Text("Settings", style = MaterialTheme.typography.titleLarge)
@@ -176,15 +181,34 @@ fun SettingsPanel(settings: SettingsManager, modifier: Modifier, onClose: () -> 
             label = { Text("SSH Username") },
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(8.dp))
-        OutlinedTextField(
-            value = password,
-            onValueChange = { settings.setPassword(it) },
-            label = { Text("SSH Password") },
-            singleLine = true,
-            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        Spacer(Modifier.height(16.dp))
+
+        Text("SSH Public Key", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            keyManager.publicKeyString,
+            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Add this key to ~/.ssh/authorized_keys on your NAS.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                clipboard.setText(AnnotatedString(keyManager.publicKeyString))
+                keyCopied = true
+                scope.launch { kotlinx.coroutines.delay(2000); keyCopied = false }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (keyCopied) "Copied!" else "Copy Public Key")
+        }
+
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = remotePath,

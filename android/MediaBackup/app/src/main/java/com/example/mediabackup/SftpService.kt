@@ -11,10 +11,10 @@ class SftpService(private val context: Context) {
     private var session: Session? = null
     private var sftp: ChannelSftp? = null
 
-    fun connect(host: String, port: Int, username: String, password: String) {
+    fun connect(host: String, port: Int, username: String, privateKeyPath: String) {
         val jsch = JSch()
+        jsch.addIdentity(privateKeyPath)
         val s = jsch.getSession(username, host, port)
-        s.setPassword(password)
         s.setConfig("StrictHostKeyChecking", "no")
         s.connect(30_000)
         val channel = s.openChannel("sftp") as ChannelSftp

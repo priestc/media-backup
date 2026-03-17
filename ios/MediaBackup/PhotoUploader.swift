@@ -29,7 +29,7 @@ class PhotoUploader: ObservableObject {
 
     func startBackup(
         localHost: String, tailscaleHost: String,
-        port: Int, username: String, password: String, remotePath: String
+        port: Int, username: String, remotePath: String
     ) async {
         guard !isRunning else { return }
         isRunning     = true
@@ -60,7 +60,7 @@ class PhotoUploader: ObservableObject {
             let h = host.trimmingCharacters(in: .whitespaces)
             guard !h.isEmpty else { continue }
             do {
-                try await sftp.connect(host: h, port: port, username: username, password: password)
+                try await sftp.connect(host: h, port: port, username: username)
                 connected = true
                 break
             } catch {}

@@ -101,7 +101,6 @@ struct ContentView: View {
                     tailscaleHost: d.string(forKey: "sshTailscaleHost") ?? "",
                     port:          Int(d.string(forKey: "sshPort") ?? "22") ?? 22,
                     username:      d.string(forKey: "sshUsername")     ?? "",
-                    password:      d.string(forKey: "sshPassword")     ?? "",
                     remotePath:    d.string(forKey: "sshRemotePath")   ?? ""
                 )
             }

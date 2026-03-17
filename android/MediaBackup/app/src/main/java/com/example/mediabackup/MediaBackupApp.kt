@@ -6,10 +6,12 @@ import java.util.concurrent.TimeUnit
 
 class MediaBackupApp : Application() {
     lateinit var settingsManager: SettingsManager
+    lateinit var keyManager: KeyManager
 
     override fun onCreate() {
         super.onCreate()
         settingsManager = SettingsManager(this)
+        keyManager = KeyManager(this)
         schedulePeriodicBackup()
     }
 
