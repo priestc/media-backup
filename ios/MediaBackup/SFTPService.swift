@@ -1,5 +1,6 @@
 import Citadel
 import Foundation
+import NIOCore
 
 /// Manages a single SSH/SFTP connection for the duration of a backup session.
 actor SFTPService {
@@ -7,14 +8,10 @@ actor SFTPService {
     private var sftpClient: SFTPClient?
 
     func connect(host: String, port: Int, username: String) async throws {
-        let privateKey = KeyManager.shared.privateKey
         let client = try await SSHClient.connect(
             host: host,
             port: port,
-            authenticationMethod: .publicKey(
-                username: username,
-                privateKey: NIOSSHPrivateKey(ed25519Key: privateKey)
-            ),
+            authenticationMethod: .ed25519(username: username, privateKey: KeyManager.shared.privateKey),
             hostKeyValidator: .acceptAnything(),   // home NAS — no need for strict validation
             reconnect: .never
         )
@@ -53,9 +50,8 @@ actor SFTPService {
     // MARK: - Private
 
     private func mkdirP(sftp: SFTPClient, path: String) async throws {
-        var components = path.split(separator: "/", omittingEmptySubsequences: true)
         var current = path.hasPrefix("/") ? "/" : ""
-        for part in components {
+        for part in path.split(separator: "/", omittingEmptySubsequences: true) {
             current += (current == "/" ? "" : "/") + part
             try? await sftp.createDirectory(atPath: current)
         }

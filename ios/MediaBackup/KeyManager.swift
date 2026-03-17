@@ -55,7 +55,7 @@ class KeyManager {
 private extension Data {
     mutating func appendSSHString(_ data: Data) {
         var length = UInt32(data.count).bigEndian
-        self.append(contentsOf: withUnsafeBytes(of: &length, Array.init))
+        Swift.withUnsafeBytes(of: &length) { self.append(contentsOf: $0) }
         self.append(data)
     }
 }

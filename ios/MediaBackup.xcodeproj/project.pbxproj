@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB002F69AE0E0011B5E4 /* Citadel */; };
+		AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB012F69AE0E0011B5E4 /* NIOCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */,
+				AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +86,7 @@
 			name = MediaBackup;
 			packageProductDependencies = (
 				AA02BB002F69AE0E0011B5E4 /* Citadel */,
+				AA02BB012F69AE0E0011B5E4 /* NIOCore */,
 			);
 			productName = MediaBackup;
 			productReference = 9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */,
+				AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9325ACB22F69AE0E0011B5E4 /* Products */;
@@ -368,6 +372,14 @@
 				minimumVersion = 0.8.0;
 			};
 		};
+		AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.65.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -375,6 +387,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */;
 			productName = Citadel;
+		};
+		AA02BB012F69AE0E0011B5E4 /* NIOCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 
