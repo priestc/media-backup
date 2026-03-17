@@ -8,8 +8,8 @@ import java.io.File
 import java.security.Security
 
 class KeyManager(private val context: Context) {
-    private val privateKeyFile = File(context.filesDir, "id_ed25519")
-    private val publicKeyFile  = File(context.filesDir, "id_ed25519.pub")
+    private val privateKeyFile = File(context.filesDir, "id_rsa")
+    private val publicKeyFile  = File(context.filesDir, "id_rsa.pub")
 
     init {
         if (Security.getProvider("BC") == null) {
@@ -21,7 +21,7 @@ class KeyManager(private val context: Context) {
     private fun ensureKeyExists() {
         if (!privateKeyFile.exists()) {
             val jsch = JSch()
-            val kp = KeyPair.genKeyPair(jsch, KeyPair.ED25519)
+            val kp = KeyPair.genKeyPair(jsch, KeyPair.RSA, 4096)
             kp.writePrivateKey(privateKeyFile.absolutePath)
             kp.writePublicKey(publicKeyFile.absolutePath, "media-backup-android")
             kp.dispose()
