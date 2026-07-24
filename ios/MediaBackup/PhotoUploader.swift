@@ -108,8 +108,7 @@ class PhotoUploader: ObservableObject {
                 try await writeAssetToFile(asset, destination: tempURL)
 
                 let data = try Data(contentsOf: tempURL)
-                let dateStr = datePath(asset.creationDate ?? Date())
-                let remoteFile = "\(remotePath)/\(deviceName)/\(dateStr)/\(filename)"
+                let remoteFile = "\(remotePath)/\(deviceName)/\(filename)"
 
                 let exists = await sftp.fileExists(atPath: remoteFile)
                 if !exists {
@@ -134,12 +133,6 @@ class PhotoUploader: ObservableObject {
     }
 
     // MARK: - Helpers
-
-    private func datePath(_ date: Date) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy/MM/dd"
-        return fmt.string(from: date)
-    }
 
     private func assetFilename(_ asset: PHAsset) -> String {
         let resources = PHAssetResource.assetResources(for: asset)

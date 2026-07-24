@@ -4,8 +4,6 @@ import android.content.Context
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.Session
-import java.text.SimpleDateFormat
-import java.util.*
 
 class SftpService(private val context: Context) {
     private var session: Session? = null
@@ -35,10 +33,8 @@ class SftpService(private val context: Context) {
     fun uploadFile(file: MediaFile, remotePath: String): Boolean {
         val channel = sftp ?: return false
         return try {
-            val date = if (file.dateTaken > 0) Date(file.dateTaken) else Date()
-            val dateStr = SimpleDateFormat("yyyy/MM/dd", Locale.US).format(date)
             val deviceName = android.os.Build.MODEL.replace("/", "_")
-            val remoteDir = "$remotePath/$deviceName/$dateStr"
+            val remoteDir = "$remotePath/$deviceName"
 
             mkdirP(channel, remoteDir)
 
