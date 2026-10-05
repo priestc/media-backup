@@ -12,9 +12,12 @@ class MediaBackupApp : Application() {
         super.onCreate()
         settingsManager = SettingsManager(this)
         keyManager = KeyManager(this)
+        UploadWorker.createNotificationChannel(this)
         schedulePeriodicBackup()
+        MediaTriggerWorker.schedule(this)
     }
 
+    // Safety net: catches anything the content trigger missed (e.g. app was force-stopped)
     private fun schedulePeriodicBackup() {
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)

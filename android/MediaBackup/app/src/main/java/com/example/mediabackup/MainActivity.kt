@@ -51,12 +51,7 @@ class MainActivity : ComponentActivity() {
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
     }
 
-    private fun runBackupNow() {
-        val request = OneTimeWorkRequestBuilder<UploadWorker>()
-            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-            .build()
-        WorkManager.getInstance(this).enqueue(request)
-    }
+    private fun runBackupNow() = UploadWorker.enqueue(this)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,7 +120,7 @@ fun MainPanel(status: String, isRunning: Boolean, modifier: Modifier, onBackupNo
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            "Automatic backup also runs hourly when connected to a network.",
+            "New photos and videos are backed up automatically as soon as they're taken.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
