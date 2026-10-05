@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var testResult: String? = nil
     @State private var isTesting = false
     @State private var keyCopied = false
+    @State private var backgroundStatus = ""
 
     private var publicKey: String { KeyManager.shared.publicKeyString }
 
@@ -54,10 +55,19 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Destination"),
-                        footer: Text("Files are stored as: remote-path/device-name/YYYY/MM/DD/filename")) {
+                        footer: Text("Files are stored as: remote-path/device-name/filename")) {
                     TextField("/home/chris/photos", text: $remotePath)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                }
+
+                Section(
+                    header: Text("Automatic Upload"),
+                    footer: Text("New photos and videos are uploaded by iOS in the background soon after they're taken, over HTTPS to \(SharedConfig.uploadURLBase?.absoluteString ?? "the server URL set in Xcode (BACKGROUND_UPLOAD_URL_BASE)"). The server authenticates this device by the SSH public key above.")
+                ) {
+                    Text(backgroundStatus)
+                        .font(.footnote)
+                        .foregroundColor(backgroundStatus.hasPrefix("On") ? .green : .secondary)
                 }
 
                 Section {
@@ -79,6 +89,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onAppear { backgroundStatus = BackgroundUpload.configure() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }

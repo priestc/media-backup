@@ -3,10 +3,10 @@
 Automatic photo and video backup from iOS and Android to your NAS or home server.
 
 - Photos and videos are uploaded over your local network (or Tailscale when away)
-- Files are organized by device name and date: `DeviceName/YYYY/MM/DD/filename`
+- Files are organized in one folder per device: `DeviceName/filename`
 - Duplicate uploads are skipped automatically
-- Android backs up automatically every hour in the background
-- iOS backs up when you open the app and tap Start
+- Android backs up new photos and videos automatically as soon as they are taken (plus an hourly catch-up)
+- iOS (27+) backs up new photos and videos automatically soon after they are taken, via Apple's Photos background upload extension; **Start Backup** in the app catches up on older photos
 
 ---
 
@@ -23,13 +23,12 @@ Automatic photo and video backup from iOS and Android to your NAS or home server
 pipx install git+https://github.com/priestc/media-backup.git
 ```
 
-### Generate an API key
+### Authentication
 
-```bash
-media-backup setup
-```
-
-This prints an API key and saves it to `~/.config/media-backup/config.json`. Copy the key — you'll enter it in the app.
+There is no separate API key. Each phone shows an SSH public key in its settings; add it to
+`~/.ssh/authorized_keys` on the server. That one key grants both SFTP access and HTTP(S)
+upload access (`Authorization: Bearer <ssh public key>`). Use `--authorized-keys` to point the
+server at a different file.
 
 ### Start the server
 
@@ -44,6 +43,21 @@ Options:
 ```bash
 media-backup serve --upload-dir /mnt/nas/photos --port 8765
 ```
+
+Set `--upload-dir` to the same path as the app's SFTP **Remote Path**, so a file uploaded over
+either SFTP or HTTPS lands in the same `<device>/<filename>` place and is never uploaded twice.
+
+### HTTPS (required for iOS automatic upload)
+
+iOS only performs background uploads over HTTPS with a trusted certificate. The easiest way is
+Tailscale, which gives the server a real certificate (the phone must have Tailscale on):
+
+```bash
+sudo tailscale serve --bg 8765
+```
+
+The server is then reachable at `https://<server-name>.<tailnet>.ts.net`. Alternatively pass your
+own certificate with `media-backup serve --cert cert.pem --key key.pem`.
 
 ### Run as a systemd service
 
@@ -121,10 +135,17 @@ Add this key (right-click Info.plist → Open As → Source Code):
 
 ### Configure and use
 
-1. Build and run on your iPhone
-2. Tap the **gear icon** → enter Local IP, Tailscale IP, and API key → tap **Test Connection**
-3. Tap **Start Backup** — all photos and videos not yet backed up will upload
-4. Progress is shown in real time; you can stop and resume at any time
+1. In Xcode, select the **MediaBackup** project → **Build Settings** → set
+   `BACKGROUND_UPLOAD_URL_BASE` to your server's HTTPS URL (e.g. `https://nas.tail1234.ts.net`).
+   iOS refuses background uploads to anywhere outside this URL, so it is fixed at build time.
+2. Build and run on your iPhone (the app group `group.io.github.priestc.MediaBackup` is
+   registered automatically with automatic signing)
+3. Tap the **gear icon** → enter Local IP, Tailscale IP, username and Remote Path; add the
+   shown public key to `~/.ssh/authorized_keys` on the server → tap **Test Connection**
+4. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
+   backed up over SFTP, and switches on automatic upload
+5. From then on, iOS uploads each new photo and video in the background (iOS decides exactly
+   when, based on battery and network). Settings → **Automatic Upload** shows the status.
 
 ---
 
@@ -143,9 +164,11 @@ Add this key (right-click Info.plist → Open As → Source Code):
 ### Configure and use
 
 1. Build and run on your Android phone
-2. Tap the **gear icon** → enter Local IP, Tailscale IP, and API key
+2. Tap the **gear icon** → enter Local IP, Tailscale IP, username and Remote Path, and add the
+   shown public key to `~/.ssh/authorized_keys` on the server
 3. Tap **Backup Now** to run an immediate backup
-4. The app also schedules an **automatic hourly backup** in the background whenever the phone has a network connection — no further action needed
+4. From then on, each new photo or video is uploaded automatically within about 30 seconds of
+   being taken (even with the app closed), with an hourly catch-up run as a safety net
 
 ---
 
@@ -155,17 +178,11 @@ Uploaded files are stored under the upload directory like this:
 
 ```
 ~/media-backup-files/
-  Chris's iPhone/
-    2026/
-      03/
-        15/
-          IMG_1234.HEIC
-          IMG_1235.MOV
+  iPhone/
+    IMG_1234.HEIC
+    IMG_1235.MOV
   Pixel 9/
-    2026/
-      03/
-        16/
-          PXL_20260316_123456.jpg
+    PXL_20260316_123456.jpg
 ```
 
 ---
@@ -176,11 +193,13 @@ The server exposes a simple HTTP API on port 8765:
 
 | Endpoint | Method | Description |
 |---|---|---|
+| `/files/<device>/<filename>` | PUT | Upload a file as the raw request body (skipped if it already exists) |
 | `/upload` | POST | Upload a file (multipart form) |
 | `/status` | GET | File count and total size |
 | `/check?filename=X` | GET | Check if a filename already exists |
 
-All endpoints require `Authorization: Bearer <api_key>`.
+All endpoints require `Authorization: Bearer <ssh public key>`, where the key is listed in the
+server's `authorized_keys`.
 
 ---
 

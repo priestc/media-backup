@@ -2,16 +2,43 @@ from __future__ import annotations
 from flask import Flask, request, jsonify, abort
 from pathlib import Path
 from datetime import datetime
+import os
+import tempfile
 
 app = Flask(__name__)
 _upload_dir: Path = Path.home() / "media-backup-files"
-_api_key: str = ""
+_authorized_keys: Path = Path.home() / ".ssh" / "authorized_keys"
+
+
+def _key_id(line: str) -> tuple[str, str] | None:
+    """(type, base64 blob) of an OpenSSH public key, ignoring options and comment."""
+    parts = line.split()
+    for i, part in enumerate(parts[:-1]):
+        if part.startswith(("ssh-", "ecdsa-", "sk-")):
+            return part, parts[i + 1]
+    return None
 
 
 def _auth():
-    key = request.headers.get("Authorization", "")
-    if not key.startswith("Bearer ") or key[7:] != _api_key:
+    """The bearer token is the device's SSH public key, which must be in authorized_keys
+    — the same key that grants SFTP access also grants HTTP upload access."""
+    header = request.headers.get("Authorization", "")
+    token = _key_id(header[7:]) if header.startswith("Bearer ") else None
+    if token is None:
         abort(401)
+    try:
+        lines = _authorized_keys.read_text().splitlines()
+    except OSError:
+        abort(401)
+    if not any(_key_id(line) == token for line in lines if not line.lstrip().startswith("#")):
+        abort(401)
+
+
+def _safe_segment(name: str) -> str:
+    name = name.strip()
+    if not name or name in (".", "..") or "/" in name or "\\" in name:
+        abort(400)
+    return name
 
 
 @app.post("/upload")
@@ -47,6 +74,30 @@ def upload():
     return jsonify({"ok": True, "path": rel})
 
 
+@app.put("/files/<device>/<filename>")
+def put_file(device: str, filename: str):
+    """Raw-body upload used by the iOS background upload extension.
+    Stores at <upload-dir>/<device>/<filename> — the same layout as SFTP uploads,
+    so a file already uploaded either way is skipped."""
+    _auth()
+    dest_dir = _upload_dir / _safe_segment(device)
+    dest = dest_dir / _safe_segment(filename)
+    if dest.exists():
+        return jsonify({"ok": True, "skipped": True}), 200
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=dest_dir, prefix=".upload-")
+    try:
+        with os.fdopen(fd, "wb") as out:
+            while chunk := request.stream.read(1 << 20):
+                out.write(chunk)
+        os.replace(tmp, dest)
+    except BaseException:
+        os.unlink(tmp)
+        raise
+    return jsonify({"ok": True, "path": str(dest.relative_to(_upload_dir))}), 201
+
+
 @app.get("/check")
 def check():
     """Check whether a filename already exists under any date directory."""
@@ -69,9 +120,10 @@ def status():
     return jsonify({"files": file_count, "size_mb": round(size_mb, 1), "upload_dir": str(_upload_dir)})
 
 
-def run(upload_dir: str, api_key: str, host: str = "0.0.0.0", port: int = 8765) -> None:
-    global _upload_dir, _api_key
+def run(upload_dir: str, authorized_keys: str, host: str = "0.0.0.0", port: int = 8765,
+        cert: str | None = None, key: str | None = None) -> None:
+    global _upload_dir, _authorized_keys
     _upload_dir = Path(upload_dir)
     _upload_dir.mkdir(parents=True, exist_ok=True)
-    _api_key = api_key
-    app.run(host=host, port=port)
+    _authorized_keys = Path(authorized_keys)
+    app.run(host=host, port=port, ssl_context=(cert, key) if cert else None, threaded=True)

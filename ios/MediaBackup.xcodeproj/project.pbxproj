@@ -9,10 +9,36 @@
 /* Begin PBXBuildFile section */
 		AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB002F69AE0E0011B5E4 /* Citadel */; };
 		AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB012F69AE0E0011B5E4 /* NIOCore */; };
+		CC01DD012F70000000C0FFEE /* MediaBackupUploader.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CC01DD002F70000000C0FFEE /* MediaBackupUploader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CC01DD032F70000000C0FFEE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9325ACA92F69AE0E0011B5E4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC01DD082F70000000C0FFEE;
+			remoteInfo = MediaBackupUploader;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CC01DD022F70000000C0FFEE /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				CC01DD012F70000000C0FFEE /* MediaBackupUploader.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MediaBackup.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC01DD002F70000000C0FFEE /* MediaBackupUploader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = MediaBackupUploader.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -20,8 +46,24 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				MediaBackup.entitlements,
 			);
 			target = 9325ACB02F69AE0E0011B5E4 /* MediaBackup */;
+		};
+		CC01DD072F70000000C0FFEE /* Exceptions for "MediaBackup" folder in "MediaBackupUploader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedConfig.swift,
+			);
+			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
+		};
+		CC01DD062F70000000C0FFEE /* Exceptions for "MediaBackupUploader" folder in "MediaBackupUploader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				MediaBackupUploader.entitlements,
+			);
+			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -30,8 +72,17 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				9325ACD82F69B1ED0011B5E4 /* Exceptions for "MediaBackup" folder in "MediaBackup" target */,
+				CC01DD072F70000000C0FFEE /* Exceptions for "MediaBackup" folder in "MediaBackupUploader" target */,
 			);
 			path = MediaBackup;
+			sourceTree = "<group>";
+		};
+		CC01DD052F70000000C0FFEE /* MediaBackupUploader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CC01DD062F70000000C0FFEE /* Exceptions for "MediaBackupUploader" folder in "MediaBackupUploader" target */,
+			);
+			path = MediaBackupUploader;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -46,6 +97,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC01DD0A2F70000000C0FFEE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -53,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				9325ACB32F69AE0E0011B5E4 /* MediaBackup */,
+				CC01DD052F70000000C0FFEE /* MediaBackupUploader */,
 				9325ACB22F69AE0E0011B5E4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -61,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */,
+				CC01DD002F70000000C0FFEE /* MediaBackupUploader.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -75,10 +135,12 @@
 				9325ACAD2F69AE0E0011B5E4 /* Sources */,
 				9325ACAE2F69AE0E0011B5E4 /* Frameworks */,
 				9325ACAF2F69AE0E0011B5E4 /* Resources */,
+				CC01DD022F70000000C0FFEE /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CC01DD042F70000000C0FFEE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9325ACB32F69AE0E0011B5E4 /* MediaBackup */,
@@ -92,6 +154,26 @@
 			productReference = 9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CC01DD082F70000000C0FFEE /* MediaBackupUploader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC01DD0C2F70000000C0FFEE /* Build configuration list for PBXNativeTarget "MediaBackupUploader" */;
+			buildPhases = (
+				CC01DD092F70000000C0FFEE /* Sources */,
+				CC01DD0A2F70000000C0FFEE /* Frameworks */,
+				CC01DD0B2F70000000C0FFEE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CC01DD052F70000000C0FFEE /* MediaBackupUploader */,
+			);
+			name = MediaBackupUploader;
+			productName = MediaBackupUploader;
+			productReference = CC01DD002F70000000C0FFEE /* MediaBackupUploader.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -104,6 +186,9 @@
 				TargetAttributes = {
 					9325ACB02F69AE0E0011B5E4 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					CC01DD082F70000000C0FFEE = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -126,12 +211,20 @@
 			projectRoot = "";
 			targets = (
 				9325ACB02F69AE0E0011B5E4 /* MediaBackup */,
+				CC01DD082F70000000C0FFEE /* MediaBackupUploader */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		9325ACAF2F69AE0E0011B5E4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC01DD0B2F70000000C0FFEE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -148,7 +241,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC01DD092F70000000C0FFEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC01DD042F70000000C0FFEE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
+			targetProxy = CC01DD032F70000000C0FFEE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		9325ACBA2F69AE0F0011B5E4 /* Debug */ = {
@@ -156,6 +264,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BACKGROUND_UPLOAD_URL_BASE = "https://tank2.tail418e84.ts.net";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -220,6 +329,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BACKGROUND_UPLOAD_URL_BASE = "https://tank2.tail418e84.ts.net";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -277,6 +387,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MediaBackup/MediaBackup.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6V798W6LMZ;
@@ -311,6 +422,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MediaBackup/MediaBackup.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6V798W6LMZ;
@@ -340,6 +452,60 @@
 			};
 			name = Release;
 		};
+		CC01DD0D2F70000000C0FFEE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MediaBackupUploader/MediaBackupUploader.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6V798W6LMZ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MediaBackupUploader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Media Backup Uploader";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.priestc.MediaBackup.Uploader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CC01DD0E2F70000000C0FFEE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MediaBackupUploader/MediaBackupUploader.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6V798W6LMZ;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MediaBackupUploader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Media Backup Uploader";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.priestc.MediaBackup.Uploader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -357,6 +523,15 @@
 			buildConfigurations = (
 				9325ACBD2F69AE0F0011B5E4 /* Debug */,
 				9325ACBE2F69AE0F0011B5E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC01DD0C2F70000000C0FFEE /* Build configuration list for PBXNativeTarget "MediaBackupUploader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC01DD0D2F70000000C0FFEE /* Debug */,
+				CC01DD0E2F70000000C0FFEE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

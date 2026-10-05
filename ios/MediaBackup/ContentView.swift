@@ -69,6 +69,7 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView()
             }
+            .task { BackgroundUpload.configure() }
         }
     }
 
@@ -103,6 +104,8 @@ struct ContentView: View {
                     username:      d.string(forKey: "sshUsername")     ?? "",
                     remotePath:    d.string(forKey: "sshRemotePath")   ?? ""
                 )
+                // Photo access may have just been granted
+                BackgroundUpload.configure()
             }
         }
     }
