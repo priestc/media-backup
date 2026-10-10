@@ -11,6 +11,9 @@ nonisolated enum SharedConfig {
     static let deviceNameKey  = "deviceName"
     static let changeTokenKey = "photoLibraryChangeToken"
     static let queueKey       = "pendingAssetIdentifiers"
+    /// When the change token was last advanced; a re-sync after the token expires looks back
+    /// to here.
+    static let lastSyncDateKey = "lastSyncDate"
 
     /// Upload server base URL, baked into Info.plist from the BACKGROUND_UPLOAD_URL_BASE build
     /// setting. iOS refuses background uploads to anywhere outside it. Nil until configured.

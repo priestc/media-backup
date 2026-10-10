@@ -25,6 +25,7 @@ enum BackgroundUpload {
         // Start from "now": older photos are covered by Start Backup.
         if SharedConfig.changeToken == nil {
             SharedConfig.changeToken = PHPersistentChangeTokenBox(library.currentChangeToken)
+            defaults.set(Date(), forKey: SharedConfig.lastSyncDateKey)
         }
         do {
             if !library.uploadJobExtensionEnabled {
