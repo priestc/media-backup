@@ -129,15 +129,8 @@ struct ContentView: View {
         if uploader.isRunning {
             uploader.stop()
         } else {
-            let d = UserDefaults.standard
             Task {
-                await uploader.startBackup(
-                    localHost:     d.string(forKey: "sshLocalHost")    ?? "",
-                    tailscaleHost: d.string(forKey: "sshTailscaleHost") ?? "",
-                    port:          Int(d.string(forKey: "sshPort") ?? "22") ?? 22,
-                    username:      d.string(forKey: "sshUsername")     ?? "",
-                    remotePath:    d.string(forKey: "sshRemotePath")   ?? ""
-                )
+                await uploader.startBackup()
                 // Photo access may have just been granted
                 BackgroundUpload.configure()
             }

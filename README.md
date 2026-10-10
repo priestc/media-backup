@@ -2,7 +2,7 @@
 
 Automatic photo and video backup from iOS and Android to your NAS or home server.
 
-- Photos and videos are uploaded over your local network (or Tailscale when away)
+- iOS uploads over HTTPS (via Tailscale); Android uploads over SFTP on your local network (or Tailscale when away)
 - Files are organized in one folder per device: `DeviceName/filename`
 - Duplicate uploads are skipped automatically
 - Android backs up new photos and videos automatically as soon as they are taken (plus an hourly catch-up)
@@ -26,7 +26,7 @@ media-backup setup
 
 `setup` asks where uploaded photos and videos should be stored, saves it to
 `~/.config/media-backup/config.json`, and creates the API key. Run it again any time to change
-the path (then restart the server and re-pair the phones).
+the path (then restart the server).
 
 ### Authentication
 
@@ -36,17 +36,15 @@ The HTTP(S) API uses an API key. Show it as a QR code in the terminal with:
 media-backup pair
 ```
 
-Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. Besides the key, the code
-carries the server's LAN address (detected), Tailscale address (`tailscale ip -4`), SSH port
-(22) and upload path (from `setup`), which fill in the app's SFTP settings; the command prints what it found, and
-`--local-host`, `--tailscale-host` and `--ssh-port` override them. Running `pair` again
+Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. That's all the iOS app
+needs: it uploads, checks and deletes files over HTTPS with that key. Running `pair` again
 shows the same key (to pair another phone); `media-backup pair --new` replaces it, after which
 every phone must scan the new code. The key is stored in `~/.config/media-backup/api_key`
 (mode 600); point both commands elsewhere with `--api-key-file`. The server re-reads the file
 on every request, so no restart is needed after pairing.
 
-SFTP (the apps' **Start Backup** / **Backup Now**) is separate: each phone shows an SSH public
-key in its settings; add it to `~/.ssh/authorized_keys` on the server.
+The Android app uses SFTP instead: it shows an SSH public key in its settings; add it to
+`~/.ssh/authorized_keys` on the server, and set its Remote Path to the upload path from `setup`.
 
 ### Start the server
 
@@ -55,9 +53,8 @@ media-backup serve
 ```
 
 This listens on `0.0.0.0:8765` (`--host`, `--port`) and stores files in the path chosen in
-`setup` (`--upload-dir` overrides it). The phones get the same path when they pair and use it as
-their SFTP destination, so a file uploaded over either SFTP or HTTPS lands in the same
-`<device>/<filename>` place and is never uploaded twice.
+`setup` (`--upload-dir` overrides it), as `<device>/<filename>`. A file the server already has
+is never stored twice.
 
 ### HTTPS (required for iOS automatic upload)
 
@@ -104,7 +101,7 @@ journalctl -u media-backup.service -f
 ```
 
 or see a day's uploads with `journalctl -u media-backup.service --since today | grep stored`.
-Uploads made over SFTP don't go through this server, so they don't appear here.
+Android's SFTP uploads don't go through this server, so they don't appear here.
 
 ### Find your IP addresses
 
@@ -162,12 +159,11 @@ Add this key (right-click Info.plist → Open As → Source Code):
    iOS refuses background uploads to anywhere outside this URL, so it is fixed at build time.
 2. Build and run on your iPhone (the app group `group.io.github.priestc.MediaBackup` is
    registered automatically with automatic signing)
-3. Run `media-backup pair` on the server, then tap the **gear icon** → **Scan Pairing QR Code**
-   (this fills in the server addresses and port)
-4. In the same screen enter your username, add the shown public key to
-   `~/.ssh/authorized_keys` on the server → tap **Test Connection**
+3. Make sure Tailscale is on on the iPhone (the server URL is a `ts.net` address)
+4. Run `media-backup pair` on the server, then tap the **gear icon** → **Scan Pairing QR Code**
+   → **Test Connection**
 5. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
-   backed up over SFTP, and switches on automatic upload
+   on the server, and switches on automatic upload
 6. From then on, iOS uploads each new photo and video in the background (iOS decides exactly
    when, based on battery and network). Settings → **Automatic Upload** shows the status.
 

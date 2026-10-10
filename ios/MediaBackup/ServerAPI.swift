@@ -29,6 +29,17 @@ enum ServerAPI {
         return Set(try JSONDecoder().decode(Response.self, from: data).present)
     }
 
+    /// Uploads a file (`PUT /files/<device>/<filename>`, as the background uploader does).
+    /// The server skips it if it already has that file.
+    static func upload(_ file: URL, as filename: String) async throws {
+        var request = try request(path: [filename])
+        request.httpMethod = "PUT"
+        request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await URLSession.shared.upload(for: request, fromFile: file)
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(code) else { throw APIError.badStatus(code) }
+    }
+
     /// Deletes a file from the server. Succeeds if it was already gone.
     static func delete(_ filename: String) async throws {
         var request = try request(path: [filename])

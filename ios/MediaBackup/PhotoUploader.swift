@@ -1,7 +1,6 @@
 import Combine
 import Foundation
 import Photos
-import UIKit
 
 @MainActor
 class PhotoUploader: ObservableObject {
@@ -15,7 +14,8 @@ class PhotoUploader: ObservableObject {
     private static let uploadedKey = "uploadedLocalIdentifiers"
     private var shouldStop = false
 
-    /// Assets this app has uploaded over SFTP (background uploads aren't recorded here).
+    /// Assets Start Backup has uploaded or found on the server (background uploads aren't
+    /// recorded here).
     static var uploadedIDs: Set<String> {
         Set(UserDefaults.standard.stringArray(forKey: uploadedKey) ?? [])
     }
@@ -34,15 +34,15 @@ class PhotoUploader: ObservableObject {
 
     func stop() { shouldStop = true }
 
-    func startBackup(
-        localHost: String, tailscaleHost: String,
-        port: Int, username: String, remotePath: String
-    ) async {
+    /// Uploads every photo and video not yet on the server over HTTPS, the same way the
+    /// background uploader does. Catches up on media from before automatic upload was on.
+    func startBackup() async {
         guard !isRunning else { return }
         isRunning     = true
         shouldStop    = false
         uploadedCount = 0
         failedCount   = 0
+        totalPending  = 0
 
         // Photo library authorization
         let auth = PHPhotoLibrary.authorizationStatus(for: .readWrite)
@@ -59,69 +59,58 @@ class PhotoUploader: ObservableObject {
             return
         }
 
-        // Connect via SSH — try local first, then Tailscale
-        statusMessage = "Connecting…"
-        let sftp = SFTPService()
-        var connected = false
-        for host in [localHost, tailscaleHost] {
-            let h = host.trimmingCharacters(in: .whitespaces)
-            guard !h.isEmpty else { continue }
-            do {
-                try await sftp.connect(host: h, port: port, username: username)
-                connected = true
-                break
-            } catch {}
-        }
-        guard connected else {
-            statusMessage = "Could not connect. Check SSH settings."
-            isRunning = false
-            return
-        }
-        defer { Task { await sftp.disconnect() } }
-
-        // Fetch assets not yet uploaded
+        // Assets not yet recorded as uploaded
         let fetchOptions = PHFetchOptions()
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
-        let allAssets = PHAsset.fetchAssets(with: fetchOptions)
-
         let alreadyUploaded = Self.uploadedIDs
-        var pending: [PHAsset] = []
-        allAssets.enumerateObjects { asset, _, _ in
+        var candidates: [(asset: PHAsset, filename: String)] = []
+        PHAsset.fetchAssets(with: fetchOptions).enumerateObjects { asset, _, _ in
             if !alreadyUploaded.contains(asset.localIdentifier) {
-                pending.append(asset)
+                candidates.append((asset, asset.backupFilename))
             }
         }
 
-        totalPending = pending.count
-        if pending.isEmpty {
-            statusMessage = "✓ Everything is backed up."
+        // Ask the server which of those it already has (e.g. from automatic upload)
+        statusMessage = "Checking server…"
+        var pending: [(asset: PHAsset, filename: String)] = []
+        do {
+            for start in stride(from: 0, to: candidates.count, by: 500) {
+                let batch = candidates[start..<min(start + 500, candidates.count)]
+                let present = try await ServerAPI.present(batch.map(\.filename))
+                for candidate in batch {
+                    if present.contains(candidate.filename) {
+                        markUploaded(candidate.asset.localIdentifier)
+                    } else {
+                        pending.append(candidate)
+                    }
+                }
+                if shouldStop { break }
+            }
+        } catch {
+            statusMessage = "Could not reach the server: \(error.localizedDescription)"
             isRunning = false
             return
         }
 
-        statusMessage = "Uploading \(pending.count) file(s)…"
-        let deviceName = UIDevice.current.name
+        totalPending = pending.count
+        if pending.isEmpty || shouldStop {
+            statusMessage = shouldStop ? "Stopped." : "✓ Everything is backed up."
+            isRunning = false
+            return
+        }
 
-        for (i, asset) in pending.enumerated() {
+        for (i, item) in pending.enumerated() {
             if shouldStop { break }
 
-            let filename = asset.backupFilename
-            currentFile  = filename
-            statusMessage = "Uploading \(i + 1)/\(pending.count): \(filename)"
+            currentFile  = item.filename
+            statusMessage = "Uploading \(i + 1)/\(pending.count): \(item.filename)"
 
             do {
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(item.filename)
                 defer { try? FileManager.default.removeItem(at: tempURL) }
-                try await writeAssetToFile(asset, destination: tempURL)
-
-                let data = try Data(contentsOf: tempURL)
-                let remoteFile = "\(remotePath)/\(deviceName)/\(filename)"
-
-                let exists = await sftp.fileExists(atPath: remoteFile)
-                if !exists {
-                    try await sftp.upload(data: data, toPath: remoteFile)
-                }
-                markUploaded(asset.localIdentifier)
+                try await writeAssetToFile(item.asset, destination: tempURL)
+                try await ServerAPI.upload(tempURL, as: item.filename)
+                markUploaded(item.asset.localIdentifier)
                 uploadedCount += 1
             } catch {
                 failedCount += 1

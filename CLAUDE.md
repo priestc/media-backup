@@ -21,12 +21,12 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
   `BACKGROUND_UPLOAD_URL_BASE` build setting in the iOS project; iOS refuses background uploads
   to any other host.
 - The upload path is set with `media-backup setup` (saved in tank2's
-  `~/.config/media-backup/config.json`) and sent to the phones in the pairing QR code, where it
-  becomes the SFTP destination, so SFTP and HTTPS uploads land in the same `<device>/<filename>` folder.
+  `~/.config/media-backup/config.json`). Files land in `<upload path>/<device>/<filename>`; the
+  Android app's SFTP Remote Path must be set to the same path.
 - HTTPS requests authenticate with an API key in tank2's `~/.config/media-backup/api_key`.
   `media-backup pair` (from here: `ssh tank2 /home/chris/.local/bin/media-backup pair`; non-interactive ssh
   has no `~/.local/bin` on PATH) prints it as
-  a QR code that the iOS app scans in Settings. SFTP still uses the device's SSH key in
-  `~/.ssh/authorized_keys`.
+  a QR code that the iOS app scans in Settings. The iOS app uses only HTTPS (no SSH); the Android
+  app uses SFTP with its SSH key in `~/.ssh/authorized_keys`.
 - tank2 has been logged out of Tailscale before (key expiry); if `tailscale status` says
   "Logged out", run `sudo tailscale up` there.

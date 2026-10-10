@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB002F69AE0E0011B5E4 /* Citadel */; };
-		AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = AA02BB012F69AE0E0011B5E4 /* NIOCore */; };
 		CC01DD012F70000000C0FFEE /* MediaBackupUploader.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CC01DD002F70000000C0FFEE /* MediaBackupUploader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -92,8 +90,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA01BB002F69AE0E0011B5E4 /* Citadel in Frameworks */,
-				AA01BB012F69AE0E0011B5E4 /* NIOCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,10 +142,6 @@
 				9325ACB32F69AE0E0011B5E4 /* MediaBackup */,
 			);
 			name = MediaBackup;
-			packageProductDependencies = (
-				AA02BB002F69AE0E0011B5E4 /* Citadel */,
-				AA02BB012F69AE0E0011B5E4 /* NIOCore */,
-			);
 			productName = MediaBackup;
 			productReference = 9325ACB12F69AE0E0011B5E4 /* MediaBackup.app */;
 			productType = "com.apple.product-type.application";
@@ -201,10 +193,6 @@
 			);
 			mainGroup = 9325ACA82F69AE0E0011B5E4;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */,
-				AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9325ACB22F69AE0E0011B5E4 /* Products */;
 			projectDirPath = "";
@@ -538,37 +526,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/orlandos-nl/Citadel";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.8.0;
-			};
-		};
-		AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-nio";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.65.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AA02BB002F69AE0E0011B5E4 /* Citadel */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA03BB002F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "Citadel" */;
-			productName = Citadel;
-		};
-		AA02BB012F69AE0E0011B5E4 /* NIOCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA03BB012F69AE0E0011B5E4 /* XCRemoteSwiftPackageReference "swift-nio" */;
-			productName = NIOCore;
-		};
-/* End XCSwiftPackageProductDependency section */
 
 	};
 	rootObject = 9325ACA92F69AE0E0011B5E4 /* Project object */;
