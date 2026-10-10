@@ -3,11 +3,13 @@ from flask import Flask, request, jsonify, abort
 from pathlib import Path
 from datetime import datetime
 import hmac
+import logging
 import os
 import secrets
 import tempfile
 
 app = Flask(__name__)
+log = logging.getLogger("media-backup")
 _upload_dir: Path = Path.home() / "media-backup-files"
 _api_key_file: Path = Path.home() / ".config" / "media-backup" / "api_key"
 
@@ -39,6 +41,8 @@ def _auth():
     key = load_api_key(_api_key_file)
     if key is None or not header.startswith("Bearer ") or \
             not hmac.compare_digest(header[7:].strip().encode(), key.encode()):
+        log.warning("refused %s %s: %s", request.method, request.path,
+                    "no API key on server" if key is None else "wrong or missing API key")
         abort(401)
 
 
@@ -47,6 +51,10 @@ def _safe_segment(name: str) -> str:
     if not name or name in (".", "..") or "/" in name or "\\" in name:
         abort(400)
     return name
+
+
+def _size(path: Path) -> str:
+    return f"{path.stat().st_size / 1_048_576:.1f} MB"
 
 
 @app.post("/upload")
@@ -79,6 +87,7 @@ def upload():
 
     f.save(dest)
     rel = str(dest.relative_to(_upload_dir))
+    log.info("stored %s (%s)", rel, _size(dest))
     return jsonify({"ok": True, "path": rel})
 
 
@@ -91,6 +100,7 @@ def put_file(device: str, filename: str):
     dest_dir = _upload_dir / _safe_segment(device)
     dest = dest_dir / _safe_segment(filename)
     if dest.exists():
+        log.info("skipped %s/%s (already stored)", device, filename)
         return jsonify({"ok": True, "skipped": True}), 200
 
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -102,7 +112,9 @@ def put_file(device: str, filename: str):
         os.replace(tmp, dest)
     except BaseException:
         os.unlink(tmp)
+        log.warning("upload of %s/%s failed partway", device, filename)
         raise
+    log.info("stored %s/%s (%s)", device, filename, _size(dest))
     return jsonify({"ok": True, "path": str(dest.relative_to(_upload_dir))}), 201
 
 
@@ -114,7 +126,9 @@ def delete_file(device: str, filename: str):
     try:
         dest.unlink()
     except FileNotFoundError:
+        log.info("delete %s/%s: not on server", device, filename)
         return jsonify({"ok": True, "missing": True}), 200
+    log.info("deleted %s/%s", device, filename)
     return jsonify({"ok": True}), 200
 
 
@@ -155,6 +169,8 @@ def status():
 def run(upload_dir: str, api_key_file: str, host: str = "0.0.0.0", port: int = 8765,
         cert: str | None = None, key: str | None = None) -> None:
     global _upload_dir, _api_key_file
+    # stderr is unbuffered, so lines reach journalctl immediately
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     _upload_dir = Path(upload_dir)
     _upload_dir.mkdir(parents=True, exist_ok=True)
     _api_key_file = Path(api_key_file)

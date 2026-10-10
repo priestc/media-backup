@@ -9,7 +9,8 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
 
 - Reach it with `ssh tank2`.
 - The server runs as the systemd service `media-backup.service` (enabled at boot, as user
-  `chris`, `--upload-dir /mnt/md0/Tank2/Pictures`). Logs: `journalctl -u media-backup.service`.
+  `chris`, `--upload-dir /mnt/md0/Tank2/Pictures`). Logs: `journalctl -u media-backup.service` (one line per
+  file stored / skipped / deleted / refused; follow live with `ssh tank2 journalctl -u media-backup.service -f`).
 - Deploy server changes by committing and pushing to `master`, then:
   ```
   ssh tank2 "pipx install --force git+https://github.com/priestc/media-backup.git && sudo -n systemctl restart media-backup.service"

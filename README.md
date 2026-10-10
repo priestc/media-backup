@@ -94,6 +94,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now media-backup.service
 ```
 
+Each file stored, skipped (already there), deleted, or refused (bad API key) is logged with its
+time. Follow the log live with:
+
+```bash
+journalctl -u media-backup.service -f
+```
+
+or see a day's uploads with `journalctl -u media-backup.service --since today | grep stored`.
+Uploads made over SFTP don't go through this server, so they don't appear here.
+
 ### Find your IP addresses
 
 **Local IP:**
