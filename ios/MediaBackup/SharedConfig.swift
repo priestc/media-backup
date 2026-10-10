@@ -7,7 +7,7 @@ nonisolated enum SharedConfig {
     static let appGroup = "group.io.github.priestc.MediaBackup"
     static var defaults: UserDefaults { UserDefaults(suiteName: appGroup)! }
 
-    static let publicKeyKey   = "sshPublicKey"
+    static let apiKeyKey      = "apiKey"
     static let deviceNameKey  = "deviceName"
     static let changeTokenKey = "photoLibraryChangeToken"
     static let queueKey       = "pendingAssetIdentifiers"
@@ -19,6 +19,15 @@ nonisolated enum SharedConfig {
               s.hasPrefix("http"), !s.contains("example") else { return nil }
         return URL(string: s)
     }
+
+    /// Key the server's `media-backup pair` command shows as a QR code; nil until scanned.
+    static var apiKey: String? {
+        get { defaults.string(forKey: apiKeyKey).flatMap { $0.isEmpty ? nil : $0 } }
+        set { defaults.set(newValue, forKey: apiKeyKey) }
+    }
+
+    /// The QR code holds this prefix followed by the key.
+    static let pairingPrefix = "media-backup-key:"
 
     /// Persistent change token marking where the extension last looked for new photos.
     static var changeToken: PHPersistentChangeTokenBox? {

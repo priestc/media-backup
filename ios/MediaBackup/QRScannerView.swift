@@ -24,10 +24,18 @@ struct QRScannerView: UIViewControllerRepresentable {
         let parent: QRScannerView
         init(_ parent: QRScannerView) { self.parent = parent }
 
+        private var scanned = false
+
+        /// Accept the first QR code seen, without needing a tap.
         func dataScanner(_ dataScanner: DataScannerViewController,
-                         didTapOn item: RecognizedItem) {
-            if case .barcode(let barcode) = item, let value = barcode.payloadStringValue {
-                parent.onScanned(value)
+                         didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
+            guard !scanned else { return }
+            for item in addedItems {
+                if case .barcode(let barcode) = item, let value = barcode.payloadStringValue {
+                    scanned = true
+                    parent.onScanned(value)
+                    return
+                }
             }
         }
     }
@@ -57,7 +65,7 @@ struct QRScannerSheet: View {
                     )
                 }
             }
-            .navigationTitle("Scan API Key")
+            .navigationTitle("Scan Pairing Code")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -12,6 +12,9 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var keyCopied = false
     @State private var backgroundStatus = ""
+    @State private var paired = SharedConfig.apiKey != nil
+    @State private var showScanner = false
+    @State private var pairingError: String? = nil
 
     private var publicKey: String { KeyManager.shared.publicKeyString }
 
@@ -40,7 +43,7 @@ struct SettingsView: View {
 
                 Section(
                     header: Text("SSH Public Key"),
-                    footer: Text("Add this key to ~/.ssh/authorized_keys on your NAS to allow password-free login.")
+                    footer: Text("Add this key to ~/.ssh/authorized_keys on your NAS to allow password-free SFTP login (used by Start Backup).")
                 ) {
                     Text(publicKey)
                         .font(.system(.caption, design: .monospaced))
@@ -62,8 +65,26 @@ struct SettingsView: View {
                 }
 
                 Section(
+                    header: Text("Server Pairing"),
+                    footer: Text("Run `media-backup pair` on the server and scan the QR code it prints. The key it holds lets this app upload, check and delete files over HTTPS.")
+                ) {
+                    Label(paired ? "Paired" : "Not paired",
+                          systemImage: paired ? "checkmark.seal.fill" : "exclamationmark.triangle")
+                        .foregroundColor(paired ? .green : .orange)
+                    Button(paired ? "Scan New Pairing QR Code" : "Scan Pairing QR Code") {
+                        pairingError = nil
+                        showScanner = true
+                    }
+                    if let pairingError {
+                        Text(pairingError)
+                            .font(.footnote)
+                            .foregroundColor(.red)
+                    }
+                }
+
+                Section(
                     header: Text("Automatic Upload"),
-                    footer: Text("New photos and videos are uploaded by iOS in the background soon after they're taken, over HTTPS to \(SharedConfig.uploadURLBase?.absoluteString ?? "the server URL set in Xcode (BACKGROUND_UPLOAD_URL_BASE)"). The server authenticates this device by the SSH public key above.")
+                    footer: Text("New photos and videos are uploaded by iOS in the background soon after they're taken, over HTTPS to \(SharedConfig.uploadURLBase?.absoluteString ?? "the server URL set in Xcode (BACKGROUND_UPLOAD_URL_BASE)").")
                 ) {
                     Text(backgroundStatus)
                         .font(.footnote)
@@ -90,12 +111,28 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .onAppear { backgroundStatus = BackgroundUpload.configure() }
+            .sheet(isPresented: $showScanner) {
+                QRScannerSheet(onScanned: pair)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
         }
+    }
+
+    private func pair(_ code: String) {
+        let key = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard key.hasPrefix(SharedConfig.pairingPrefix),
+              case let apiKey = String(key.dropFirst(SharedConfig.pairingPrefix.count)),
+              !apiKey.isEmpty else {
+            pairingError = "That isn't a media-backup pairing code. Run `media-backup pair` on the server."
+            return
+        }
+        SharedConfig.apiKey = apiKey
+        paired = true
+        backgroundStatus = BackgroundUpload.configure()
     }
 
     private func testConnection() {

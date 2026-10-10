@@ -30,9 +30,9 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
     private func process() async throws -> PHBackgroundResourceUploadProcessingResult {
         let defaults = SharedConfig.defaults
         guard let base = SharedConfig.uploadURLBase,
-              let publicKey = defaults.string(forKey: SharedConfig.publicKeyKey),
+              let apiKey = SharedConfig.apiKey,
               let deviceName = defaults.string(forKey: SharedConfig.deviceNameKey) else {
-            log.info("not configured; open the app")
+            log.info("not configured; open the app and pair with the server")
             return .completed
         }
 
@@ -76,7 +76,7 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
             PHAsset.fetchAssets(withLocalIdentifiers: batch, options: nil).enumerateObjects { asset, _, _ in
                 guard let resource = asset.backupResource else { return }
                 uploads.append((Self.request(base: base, device: deviceName,
-                                             filename: asset.backupFilename, publicKey: publicKey),
+                                             filename: asset.backupFilename, apiKey: apiKey),
                                 resource))
             }
             if !uploads.isEmpty {
@@ -120,13 +120,13 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
         return ids
     }
 
-    private static func request(base: URL, device: String, filename: String, publicKey: String) -> URLRequest {
+    private static func request(base: URL, device: String, filename: String, apiKey: String) -> URLRequest {
         let url = base.appending(component: "files")
             .appending(component: device)
             .appending(component: filename)
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
-        request.setValue("Bearer \(publicKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         return request
     }

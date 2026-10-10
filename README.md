@@ -25,10 +25,20 @@ pipx install git+https://github.com/priestc/media-backup.git
 
 ### Authentication
 
-There is no separate API key. Each phone shows an SSH public key in its settings; add it to
-`~/.ssh/authorized_keys` on the server. That one key grants both SFTP access and HTTP(S)
-upload access (`Authorization: Bearer <ssh public key>`). Use `--authorized-keys` to point the
-server at a different file.
+The HTTP(S) API uses an API key. Create it and show it as a QR code in the terminal with:
+
+```bash
+media-backup pair
+```
+
+Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. Running `pair` again
+shows the same key (to pair another phone); `media-backup pair --new` replaces it, after which
+every phone must scan the new code. The key is stored in `~/.config/media-backup/api_key`
+(mode 600); point both commands elsewhere with `--api-key-file`. The server re-reads the file
+on every request, so no restart is needed after pairing.
+
+SFTP (the apps' **Start Backup** / **Backup Now**) is separate: each phone shows an SSH public
+key in its settings; add it to `~/.ssh/authorized_keys` on the server.
 
 ### Start the server
 
@@ -142,9 +152,10 @@ Add this key (right-click Info.plist → Open As → Source Code):
    registered automatically with automatic signing)
 3. Tap the **gear icon** → enter Local IP, Tailscale IP, username and Remote Path; add the
    shown public key to `~/.ssh/authorized_keys` on the server → tap **Test Connection**
-4. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
+4. Run `media-backup pair` on the server and tap **Scan Pairing QR Code** in the app's settings
+5. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
    backed up over SFTP, and switches on automatic upload
-5. From then on, iOS uploads each new photo and video in the background (iOS decides exactly
+6. From then on, iOS uploads each new photo and video in the background (iOS decides exactly
    when, based on battery and network). Settings → **Automatic Upload** shows the status.
 
 ---
@@ -194,12 +205,13 @@ The server exposes a simple HTTP API on port 8765:
 | Endpoint | Method | Description |
 |---|---|---|
 | `/files/<device>/<filename>` | PUT | Upload a file as the raw request body (skipped if it already exists) |
+| `/files/<device>/<filename>` | DELETE | Delete a file (succeeds if already gone) |
+| `/files/<device>` | POST | JSON `{"filenames": [...]}` → `{"present": [...]}`, the ones stored |
 | `/upload` | POST | Upload a file (multipart form) |
 | `/status` | GET | File count and total size |
 | `/check?filename=X` | GET | Check if a filename already exists |
 
-All endpoints require `Authorization: Bearer <ssh public key>`, where the key is listed in the
-server's `authorized_keys`.
+All endpoints require `Authorization: Bearer <api key>`, the key from `media-backup pair`.
 
 ---
 

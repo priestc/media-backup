@@ -8,12 +8,14 @@ enum BackgroundUpload {
     @discardableResult
     static func configure() -> String {
         let defaults = SharedConfig.defaults
-        defaults.set(KeyManager.shared.publicKeyString, forKey: SharedConfig.publicKeyKey)
         defaults.set(UIDevice.current.name, forKey: SharedConfig.deviceNameKey)
 
         guard #available(iOS 27, *) else { return "Requires iOS 27 or later" }
         guard SharedConfig.uploadURLBase != nil else {
             return "Off — set BACKGROUND_UPLOAD_URL_BASE in the Xcode project"
+        }
+        guard SharedConfig.apiKey != nil else {
+            return "Off — scan the server's pairing QR code below"
         }
         guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
             return "Needs full photo library access"

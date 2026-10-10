@@ -2,15 +2,17 @@ import Foundation
 import UIKit
 
 /// HTTPS calls to the upload server (`media-backup serve`) at BACKGROUND_UPLOAD_URL_BASE,
-/// authenticated with this device's SSH public key.
+/// authenticated with the API key scanned from `media-backup pair`.
 enum ServerAPI {
     enum APIError: LocalizedError {
         case notConfigured
+        case notPaired
         case badStatus(Int)
 
         var errorDescription: String? {
             switch self {
             case .notConfigured: return "No server URL (BACKGROUND_UPLOAD_URL_BASE) is set."
+            case .notPaired: return "Not paired with the server. Scan its QR code in Settings."
             case .badStatus(let code): return "The server returned HTTP \(code)."
             }
         }
@@ -36,10 +38,11 @@ enum ServerAPI {
 
     private static func request(path: [String]) throws -> URLRequest {
         guard var url = SharedConfig.uploadURLBase else { throw APIError.notConfigured }
+        guard let apiKey = SharedConfig.apiKey else { throw APIError.notPaired }
         url = url.appending(component: "files").appending(component: UIDevice.current.name)
         for component in path { url = url.appending(component: component) }
         var request = URLRequest(url: url, timeoutInterval: 15)
-        request.setValue("Bearer \(KeyManager.shared.publicKeyString)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         return request
     }
 

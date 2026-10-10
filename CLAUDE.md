@@ -21,7 +21,9 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
   to any other host.
 - Run `media-backup serve` with `--upload-dir` equal to the apps' SFTP Remote Path so SFTP and
   HTTPS uploads land in the same `<device>/<filename>` folder.
-- Uploads authenticate with the device's SSH public key, checked against tank2's
+- HTTPS requests authenticate with an API key in tank2's `~/.config/media-backup/api_key`.
+  `media-backup pair` (run interactively on tank2: `ssh -t tank2 media-backup pair`) prints it as
+  a QR code that the iOS app scans in Settings. SFTP still uses the device's SSH key in
   `~/.ssh/authorized_keys`.
 - tank2 has been logged out of Tailscale before (key expiry); if `tailscale status` says
   "Logged out", run `sudo tailscale up` there.

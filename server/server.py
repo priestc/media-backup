@@ -2,35 +2,43 @@ from __future__ import annotations
 from flask import Flask, request, jsonify, abort
 from pathlib import Path
 from datetime import datetime
+import hmac
 import os
+import secrets
 import tempfile
 
 app = Flask(__name__)
 _upload_dir: Path = Path.home() / "media-backup-files"
-_authorized_keys: Path = Path.home() / ".ssh" / "authorized_keys"
+_api_key_file: Path = Path.home() / ".config" / "media-backup" / "api_key"
+
+PAIRING_PREFIX = "media-backup-key:"
 
 
-def _key_id(line: str) -> tuple[str, str] | None:
-    """(type, base64 blob) of an OpenSSH public key, ignoring options and comment."""
-    parts = line.split()
-    for i, part in enumerate(parts[:-1]):
-        if part.startswith(("ssh-", "ecdsa-", "sk-")):
-            return part, parts[i + 1]
-    return None
+def load_api_key(path: Path) -> str | None:
+    try:
+        return path.read_text().strip() or None
+    except OSError:
+        return None
+
+
+def create_api_key(path: Path) -> str:
+    """Write a new random API key to `path`, readable only by the owner."""
+    key = secrets.token_urlsafe(32)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(key + "\n")
+    os.chmod(path, 0o600)
+    return key
 
 
 def _auth():
-    """The bearer token is the device's SSH public key, which must be in authorized_keys
-    — the same key that grants SFTP access also grants HTTP upload access."""
+    """Requests carry the API key that `media-backup pair` shows as a QR code.
+    The file is read each time, so pairing doesn't need a restart."""
     header = request.headers.get("Authorization", "")
-    token = _key_id(header[7:]) if header.startswith("Bearer ") else None
-    if token is None:
-        abort(401)
-    try:
-        lines = _authorized_keys.read_text().splitlines()
-    except OSError:
-        abort(401)
-    if not any(_key_id(line) == token for line in lines if not line.lstrip().startswith("#")):
+    key = load_api_key(_api_key_file)
+    if key is None or not header.startswith("Bearer ") or \
+            not hmac.compare_digest(header[7:].strip().encode(), key.encode()):
         abort(401)
 
 
@@ -144,10 +152,10 @@ def status():
     return jsonify({"files": file_count, "size_mb": round(size_mb, 1), "upload_dir": str(_upload_dir)})
 
 
-def run(upload_dir: str, authorized_keys: str, host: str = "0.0.0.0", port: int = 8765,
+def run(upload_dir: str, api_key_file: str, host: str = "0.0.0.0", port: int = 8765,
         cert: str | None = None, key: str | None = None) -> None:
-    global _upload_dir, _authorized_keys
+    global _upload_dir, _api_key_file
     _upload_dir = Path(upload_dir)
     _upload_dir.mkdir(parents=True, exist_ok=True)
-    _authorized_keys = Path(authorized_keys)
+    _api_key_file = Path(api_key_file)
     app.run(host=host, port=port, ssl_context=(cert, key) if cert else None, threaded=True)
