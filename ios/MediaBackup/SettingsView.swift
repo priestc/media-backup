@@ -58,15 +58,15 @@ struct SettingsView: View {
                 }
 
                 Section(header: Text("Destination"),
-                        footer: Text("Files are stored as: remote-path/device-name/filename")) {
-                    TextField("/home/chris/photos", text: $remotePath)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                        footer: Text("Set on the server with `media-backup setup` and received when pairing. Files are stored as: path/device-name/filename")) {
+                    Text(remotePath.isEmpty ? "Scan the pairing QR code" : remotePath)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundColor(.secondary)
                 }
 
                 Section(
                     header: Text("Server Pairing"),
-                    footer: Text("Run `media-backup pair` on the server and scan the QR code it prints. It fills in the server addresses and port above, and holds the key that lets this app upload, check and delete files over HTTPS.")
+                    footer: Text("Run `media-backup pair` on the server and scan the QR code it prints. It fills in the server addresses, port and destination path, and holds the key that lets this app upload, check and delete files over HTTPS.")
                 ) {
                     Label(paired ? "Paired" : "Not paired",
                           systemImage: paired ? "checkmark.seal.fill" : "exclamationmark.triangle")
@@ -142,6 +142,7 @@ struct SettingsView: View {
         if let host = params["local"] { localHost = host }
         if let host = params["tailscale"] { tailscaleHost = host }
         if let port = params["ssh_port"] { portStr = port }
+        if let path = params["path"] { remotePath = path }
         paired = true
         backgroundStatus = BackgroundUpload.configure()
     }

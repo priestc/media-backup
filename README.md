@@ -21,19 +21,24 @@ Automatic photo and video backup from iOS and Android to your NAS or home server
 
 ```bash
 pipx install git+https://github.com/priestc/media-backup.git
+media-backup setup
 ```
+
+`setup` asks where uploaded photos and videos should be stored, saves it to
+`~/.config/media-backup/config.json`, and creates the API key. Run it again any time to change
+the path (then restart the server and re-pair the phones).
 
 ### Authentication
 
-The HTTP(S) API uses an API key. Create it and show it as a QR code in the terminal with:
+The HTTP(S) API uses an API key. Show it as a QR code in the terminal with:
 
 ```bash
 media-backup pair
 ```
 
 Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. Besides the key, the code
-carries the server's LAN address (detected), Tailscale address (`tailscale ip -4`) and SSH port
-(22), which fill in the app's SFTP settings; the command prints what it found, and
+carries the server's LAN address (detected), Tailscale address (`tailscale ip -4`), SSH port
+(22) and upload path (from `setup`), which fill in the app's SFTP settings; the command prints what it found, and
 `--local-host`, `--tailscale-host` and `--ssh-port` override them. Running `pair` again
 shows the same key (to pair another phone); `media-backup pair --new` replaces it, after which
 every phone must scan the new code. The key is stored in `~/.config/media-backup/api_key`
@@ -49,16 +54,10 @@ key in its settings; add it to `~/.ssh/authorized_keys` on the server.
 media-backup serve
 ```
 
-By default this listens on `0.0.0.0:8765` and stores files in `~/media-backup-files/`.
-
-Options:
-
-```bash
-media-backup serve --upload-dir /mnt/nas/photos --port 8765
-```
-
-Set `--upload-dir` to the same path as the app's SFTP **Remote Path**, so a file uploaded over
-either SFTP or HTTPS lands in the same `<device>/<filename>` place and is never uploaded twice.
+This listens on `0.0.0.0:8765` (`--host`, `--port`) and stores files in the path chosen in
+`setup` (`--upload-dir` overrides it). The phones get the same path when they pair and use it as
+their SFTP destination, so a file uploaded over either SFTP or HTTPS lands in the same
+`<device>/<filename>` place and is never uploaded twice.
 
 ### HTTPS (required for iOS automatic upload)
 
@@ -83,7 +82,7 @@ After=network.target
 
 [Service]
 User=chris
-ExecStart=/home/chris/.local/bin/media-backup serve --upload-dir /mnt/nas/photos
+ExecStart=/home/chris/.local/bin/media-backup serve
 Restart=on-failure
 
 [Install]
@@ -165,7 +164,7 @@ Add this key (right-click Info.plist → Open As → Source Code):
    registered automatically with automatic signing)
 3. Run `media-backup pair` on the server, then tap the **gear icon** → **Scan Pairing QR Code**
    (this fills in the server addresses and port)
-4. In the same screen enter username and Remote Path, add the shown public key to
+4. In the same screen enter your username, add the shown public key to
    `~/.ssh/authorized_keys` on the server → tap **Test Connection**
 5. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
    backed up over SFTP, and switches on automatic upload
@@ -202,7 +201,7 @@ Add this key (right-click Info.plist → Open As → Source Code):
 Uploaded files are stored under the upload directory like this:
 
 ```
-~/media-backup-files/
+<upload path>/
   iPhone/
     IMG_1234.HEIC
     IMG_1235.MOV

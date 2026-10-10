@@ -20,8 +20,9 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
   `https://tank2.tail418e84.ts.net` → `http://127.0.0.1:8765`. That URL is the
   `BACKGROUND_UPLOAD_URL_BASE` build setting in the iOS project; iOS refuses background uploads
   to any other host.
-- Run `media-backup serve` with `--upload-dir` equal to the apps' SFTP Remote Path so SFTP and
-  HTTPS uploads land in the same `<device>/<filename>` folder.
+- The upload path is set with `media-backup setup` (saved in tank2's
+  `~/.config/media-backup/config.json`) and sent to the phones in the pairing QR code, where it
+  becomes the SFTP destination, so SFTP and HTTPS uploads land in the same `<device>/<filename>` folder.
 - HTTPS requests authenticate with an API key in tank2's `~/.config/media-backup/api_key`.
   `media-backup pair` (from here: `ssh tank2 /home/chris/.local/bin/media-backup pair`; non-interactive ssh
   has no `~/.local/bin` on PATH) prints it as
