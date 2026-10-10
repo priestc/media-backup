@@ -98,6 +98,30 @@ def put_file(device: str, filename: str):
     return jsonify({"ok": True, "path": str(dest.relative_to(_upload_dir))}), 201
 
 
+@app.delete("/files/<device>/<filename>")
+def delete_file(device: str, filename: str):
+    """Delete a file the device removed from its photo library. Missing files are fine."""
+    _auth()
+    dest = _upload_dir / _safe_segment(device) / _safe_segment(filename)
+    try:
+        dest.unlink()
+    except FileNotFoundError:
+        return jsonify({"ok": True, "missing": True}), 200
+    return jsonify({"ok": True}), 200
+
+
+@app.post("/files/<device>")
+def files_present(device: str):
+    """Which of the given filenames (JSON body {"filenames": [...]}) are stored for this device."""
+    _auth()
+    dest_dir = _upload_dir / _safe_segment(device)
+    names = (request.get_json(silent=True) or {}).get("filenames") or []
+    present = [n for n in names
+               if isinstance(n, str) and n and "/" not in n and "\\" not in n
+               and n not in (".", "..") and (dest_dir / n).is_file()]
+    return jsonify({"present": present})
+
+
 @app.get("/check")
 def check():
     """Check whether a filename already exists under any date directory."""

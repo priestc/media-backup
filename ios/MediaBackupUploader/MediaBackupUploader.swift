@@ -74,9 +74,9 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
         if !batch.isEmpty {
             var uploads: [(URLRequest, PHAssetResource)] = []
             PHAsset.fetchAssets(withLocalIdentifiers: batch, options: nil).enumerateObjects { asset, _, _ in
-                guard let resource = Self.primaryResource(asset) else { return }
+                guard let resource = asset.backupResource else { return }
                 uploads.append((Self.request(base: base, device: deviceName,
-                                             filename: Self.filename(asset), publicKey: publicKey),
+                                             filename: asset.backupFilename, publicKey: publicKey),
                                 resource))
             }
             if !uploads.isEmpty {
@@ -118,23 +118,6 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
             log.error("change history unavailable: \(error.localizedDescription, privacy: .public)")
         }
         return ids
-    }
-
-    // Same resource and filename choice as PhotoUploader, so the server sees the same file
-    // whether it arrives here or via SFTP, and skips duplicates.
-    private static func primaryResource(_ asset: PHAsset) -> PHAssetResource? {
-        let resources = PHAssetResource.assetResources(for: asset)
-        return resources.first(where: {
-            $0.type == .photo || $0.type == .video ||
-            $0.type == .fullSizePhoto || $0.type == .fullSizeVideo
-        }) ?? resources.first
-    }
-
-    private static func filename(_ asset: PHAsset) -> String {
-        let resources = PHAssetResource.assetResources(for: asset)
-        if let name = resources.first?.originalFilename, !name.isEmpty { return name }
-        let ext = asset.mediaType == .video ? "mp4" : "jpg"
-        return "\(asset.localIdentifier.prefix(8)).\(ext)"
     }
 
     private static func request(base: URL, device: String, filename: String, publicKey: String) -> URLRequest {

@@ -44,3 +44,23 @@ nonisolated struct PHPersistentChangeTokenBox {
 
     var data: Data? { try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true) }
 }
+
+nonisolated extension PHAsset {
+    /// The resource that gets backed up — the same choice for SFTP, background and HTTPS
+    /// uploads, so the server sees one file however it arrives.
+    var backupResource: PHAssetResource? {
+        let resources = PHAssetResource.assetResources(for: self)
+        return resources.first(where: {
+            $0.type == .photo || $0.type == .video ||
+            $0.type == .fullSizePhoto || $0.type == .fullSizeVideo
+        }) ?? resources.first
+    }
+
+    /// Filename on the server: `<upload-dir>/<device>/<backupFilename>`.
+    var backupFilename: String {
+        let resources = PHAssetResource.assetResources(for: self)
+        if let name = resources.first?.originalFilename, !name.isEmpty { return name }
+        let ext = mediaType == .video ? "mp4" : "jpg"
+        return "\(localIdentifier.prefix(8)).\(ext)"
+    }
+}

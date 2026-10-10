@@ -12,16 +12,23 @@ class PhotoUploader: ObservableObject {
     @Published var totalPending  = 0
     @Published var currentFile   = ""
 
-    private let uploadedKey = "uploadedLocalIdentifiers"
-    private var shouldStop  = false
+    private static let uploadedKey = "uploadedLocalIdentifiers"
+    private var shouldStop = false
 
-    private var uploadedIDs: Set<String> {
+    /// Assets this app has uploaded over SFTP (background uploads aren't recorded here).
+    static var uploadedIDs: Set<String> {
         Set(UserDefaults.standard.stringArray(forKey: uploadedKey) ?? [])
     }
 
     private func markUploaded(_ id: String) {
-        var ids = uploadedIDs
+        var ids = Self.uploadedIDs
         ids.insert(id)
+        UserDefaults.standard.set(Array(ids), forKey: Self.uploadedKey)
+    }
+
+    static func forgetUploaded(_ id: String) {
+        var ids = uploadedIDs
+        guard ids.remove(id) != nil else { return }
         UserDefaults.standard.set(Array(ids), forKey: uploadedKey)
     }
 
@@ -77,7 +84,7 @@ class PhotoUploader: ObservableObject {
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         let allAssets = PHAsset.fetchAssets(with: fetchOptions)
 
-        let alreadyUploaded = uploadedIDs
+        let alreadyUploaded = Self.uploadedIDs
         var pending: [PHAsset] = []
         allAssets.enumerateObjects { asset, _, _ in
             if !alreadyUploaded.contains(asset.localIdentifier) {
@@ -98,7 +105,7 @@ class PhotoUploader: ObservableObject {
         for (i, asset) in pending.enumerated() {
             if shouldStop { break }
 
-            let filename = assetFilename(asset)
+            let filename = asset.backupFilename
             currentFile  = filename
             statusMessage = "Uploading \(i + 1)/\(pending.count): \(filename)"
 
@@ -134,19 +141,8 @@ class PhotoUploader: ObservableObject {
 
     // MARK: - Helpers
 
-    private func assetFilename(_ asset: PHAsset) -> String {
-        let resources = PHAssetResource.assetResources(for: asset)
-        if let name = resources.first?.originalFilename, !name.isEmpty { return name }
-        let ext = asset.mediaType == .video ? "mp4" : "jpg"
-        return "\(asset.localIdentifier.prefix(8)).\(ext)"
-    }
-
     private func writeAssetToFile(_ asset: PHAsset, destination: URL) async throws {
-        let resources = PHAssetResource.assetResources(for: asset)
-        guard let resource = resources.first(where: {
-            $0.type == .photo || $0.type == .video ||
-            $0.type == .fullSizePhoto || $0.type == .fullSizeVideo
-        }) ?? resources.first else {
+        guard let resource = asset.backupResource else {
             throw URLError(.cannotLoadFromNetwork)
         }
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
