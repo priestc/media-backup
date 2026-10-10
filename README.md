@@ -6,7 +6,7 @@ Automatic photo and video backup from iOS and Android to your NAS or home server
 - Files are organized in one folder per device: `DeviceName/filename`
 - Duplicate uploads are skipped automatically
 - Android backs up new photos and videos automatically as soon as they are taken (plus an hourly catch-up)
-- iOS (27+) backs up new photos and videos automatically soon after they are taken, via Apple's Photos background upload extension; **Start Backup** in the app catches up on older photos
+- iOS (27+) backs up new photos and videos automatically soon after they are taken, via Apple's Photos background upload extension; **Start Backup** in the app's Settings catches up on older photos. The home screen lists the latest photos and videos with whether each is on the server, and lets you delete one everywhere
 
 ---
 
@@ -162,7 +162,7 @@ Add this key (right-click Info.plist → Open As → Source Code):
 3. Make sure Tailscale is on on the iPhone (the server URL is a `ts.net` address)
 4. Run `media-backup pair` on the server, then tap the **gear icon** → **Scan Pairing QR Code**
    → **Test Connection**
-5. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
+5. In Settings, tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
    on the server, and switches on automatic upload
 6. From then on, iOS uploads each new photo and video in the background (iOS decides exactly
    when, based on battery and network). Settings → **Automatic Upload** shows the status.

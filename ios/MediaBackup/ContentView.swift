@@ -10,7 +10,9 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             List {
-                Section { statusRow }
+                if uploader.isRunning {
+                    Section { BackupProgress(uploader: uploader) }
+                }
 
                 Section(header: Text("Latest")) {
                     if media.accessDenied {
@@ -31,7 +33,6 @@ struct ContentView: View {
             }
             .listStyle(.plain)
             .refreshable { await media.refreshServerStatus() }
-            .safeAreaInset(edge: .bottom) { backupButton }
             .navigationTitle("Media Backup")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -41,7 +42,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView()
+                SettingsView(uploader: uploader)
             }
             .alert("Delete", isPresented: Binding(
                 get: { media.errorMessage != nil },
@@ -74,7 +75,13 @@ struct ContentView: View {
         }
     }
 
-    private var statusRow: some View {
+}
+
+/// Start Backup's status line and, while it runs, a progress bar.
+struct BackupProgress: View {
+    @ObservedObject var uploader: PhotoUploader
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(uploader.statusMessage, systemImage: statusIcon)
                 .font(.subheadline)
@@ -91,50 +98,23 @@ struct ContentView: View {
         }
     }
 
-    private var backupButton: some View {
-        Button(action: toggleBackup) {
-            Label(
-                uploader.isRunning ? "Stop" : "Start Backup",
-                systemImage: uploader.isRunning ? "stop.fill" : "arrow.up.to.cloud.fill"
-            )
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(uploader.isRunning ? Color.red : Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(12)
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-        }
+    private var isError: Bool {
+        let message = uploader.statusMessage.lowercased()
+        return message.contains("error") || message.contains("denied") || message.contains("could not")
     }
 
     private var statusIcon: String {
         if uploader.isRunning { return "arrow.up.circle.fill" }
         if uploader.statusMessage.hasPrefix("✓") { return "checkmark.circle.fill" }
-        if uploader.statusMessage.lowercased().contains("error") ||
-           uploader.statusMessage.lowercased().contains("denied") ||
-           uploader.statusMessage.lowercased().contains("could not") { return "exclamationmark.circle.fill" }
+        if isError { return "exclamationmark.circle.fill" }
         return "photo.on.rectangle.angled"
     }
 
     private var statusColor: Color {
         if uploader.isRunning { return .blue }
         if uploader.statusMessage.hasPrefix("✓") { return .green }
-        if uploader.statusMessage.lowercased().contains("error") ||
-           uploader.statusMessage.lowercased().contains("denied") ||
-           uploader.statusMessage.lowercased().contains("could not") { return .red }
+        if isError { return .red }
         return .secondary
-    }
-
-    private func toggleBackup() {
-        if uploader.isRunning {
-            uploader.stop()
-        } else {
-            Task {
-                await uploader.startBackup()
-                // Photo access may have just been granted
-                BackgroundUpload.configure()
-            }
-        }
     }
 }
 

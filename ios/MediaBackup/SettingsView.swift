@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
+    /// Owned by ContentView so a backup keeps reporting progress after Settings closes.
+    @ObservedObject var uploader: PhotoUploader
     @Environment(\.dismiss) private var dismiss
 
     @State private var testResult: String? = nil
@@ -37,11 +39,23 @@ struct SettingsView: View {
 
                 Section(
                     header: Text("Automatic Upload"),
-                    footer: Text("New photos and videos are uploaded by iOS in the background soon after they're taken. Start Backup uploads anything older.")
+                    footer: Text("New photos and videos are uploaded by iOS in the background soon after they're taken.")
                 ) {
                     Text(backgroundStatus)
                         .font(.footnote)
                         .foregroundColor(backgroundStatus.hasPrefix("On") ? .green : .secondary)
+                }
+
+                Section(
+                    header: Text("Full Backup"),
+                    footer: Text("Uploads every photo and video the server doesn't have yet, such as ones taken before automatic upload was on, or any it missed. Keep the app open while it runs.")
+                ) {
+                    BackupProgress(uploader: uploader)
+                    Button(role: uploader.isRunning ? .destructive : nil, action: toggleBackup) {
+                        Label(uploader.isRunning ? "Stop" : "Start Backup",
+                              systemImage: uploader.isRunning ? "stop.fill" : "arrow.up.to.cloud.fill")
+                    }
+                    .disabled(!paired && !uploader.isRunning)
                 }
 
                 Section {
@@ -70,6 +84,18 @@ struct SettingsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+        }
+    }
+
+    private func toggleBackup() {
+        if uploader.isRunning {
+            uploader.stop()
+        } else {
+            Task {
+                await uploader.startBackup()
+                // Photo access may have just been granted
+                backgroundStatus = BackgroundUpload.configure()
             }
         }
     }

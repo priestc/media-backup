@@ -5,7 +5,7 @@ import Photos
 @MainActor
 class PhotoUploader: ObservableObject {
     @Published var isRunning     = false
-    @Published var statusMessage = "Tap 'Start Backup' to begin"
+    @Published var statusMessage = "Not run since the app opened"
     @Published var uploadedCount = 0
     @Published var failedCount   = 0
     @Published var totalPending  = 0
