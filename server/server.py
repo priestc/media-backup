@@ -13,7 +13,6 @@ log = logging.getLogger("media-backup")
 _upload_dir: Path = Path.home() / "media-backup-files"
 _api_key_file: Path = Path.home() / ".config" / "media-backup" / "api_key"
 
-PAIRING_PREFIX = "media-backup-key:"
 
 
 def load_api_key(path: Path) -> str | None:

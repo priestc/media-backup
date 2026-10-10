@@ -31,7 +31,10 @@ The HTTP(S) API uses an API key. Create it and show it as a QR code in the termi
 media-backup pair
 ```
 
-Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. Running `pair` again
+Then in the iOS app tap the **gear icon** → **Scan Pairing QR Code**. Besides the key, the code
+carries the server's LAN address (detected), Tailscale address (`tailscale ip -4`) and SSH port
+(22), which fill in the app's SFTP settings; the command prints what it found, and
+`--local-host`, `--tailscale-host` and `--ssh-port` override them. Running `pair` again
 shows the same key (to pair another phone); `media-backup pair --new` replaces it, after which
 every phone must scan the new code. The key is stored in `~/.config/media-backup/api_key`
 (mode 600); point both commands elsewhere with `--api-key-file`. The server re-reads the file
@@ -160,9 +163,10 @@ Add this key (right-click Info.plist → Open As → Source Code):
    iOS refuses background uploads to anywhere outside this URL, so it is fixed at build time.
 2. Build and run on your iPhone (the app group `group.io.github.priestc.MediaBackup` is
    registered automatically with automatic signing)
-3. Tap the **gear icon** → enter Local IP, Tailscale IP, username and Remote Path; add the
-   shown public key to `~/.ssh/authorized_keys` on the server → tap **Test Connection**
-4. Run `media-backup pair` on the server and tap **Scan Pairing QR Code** in the app's settings
+3. Run `media-backup pair` on the server, then tap the **gear icon** → **Scan Pairing QR Code**
+   (this fills in the server addresses and port)
+4. In the same screen enter username and Remote Path, add the shown public key to
+   `~/.ssh/authorized_keys` on the server → tap **Test Connection**
 5. Tap **Start Backup** and allow **Full Access** to photos — this uploads everything not yet
    backed up over SFTP, and switches on automatic upload
 6. From then on, iOS uploads each new photo and video in the background (iOS decides exactly

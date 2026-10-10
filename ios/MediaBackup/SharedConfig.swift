@@ -26,9 +26,6 @@ nonisolated enum SharedConfig {
         set { defaults.set(newValue, forKey: apiKeyKey) }
     }
 
-    /// The QR code holds this prefix followed by the key.
-    static let pairingPrefix = "media-backup-key:"
-
     /// Persistent change token marking where the extension last looked for new photos.
     static var changeToken: PHPersistentChangeTokenBox? {
         get {

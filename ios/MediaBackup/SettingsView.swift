@@ -66,7 +66,7 @@ struct SettingsView: View {
 
                 Section(
                     header: Text("Server Pairing"),
-                    footer: Text("Run `media-backup pair` on the server and scan the QR code it prints. The key it holds lets this app upload, check and delete files over HTTPS.")
+                    footer: Text("Run `media-backup pair` on the server and scan the QR code it prints. It fills in the server addresses and port above, and holds the key that lets this app upload, check and delete files over HTTPS.")
                 ) {
                     Label(paired ? "Paired" : "Not paired",
                           systemImage: paired ? "checkmark.seal.fill" : "exclamationmark.triangle")
@@ -122,15 +122,26 @@ struct SettingsView: View {
         }
     }
 
+    /// Applies a `media-backup://pair?key=…&local=…&tailscale=…&ssh_port=…` code from
+    /// `media-backup pair`: the API key, plus whichever SFTP settings the server could detect.
     private func pair(_ code: String) {
-        let key = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard key.hasPrefix(SharedConfig.pairingPrefix),
-              case let apiKey = String(key.dropFirst(SharedConfig.pairingPrefix.count)),
-              !apiKey.isEmpty else {
+        guard let url = URLComponents(string: code.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme == "media-backup", url.host == "pair" else {
             pairingError = "That isn't a media-backup pairing code. Run `media-backup pair` on the server."
             return
         }
+        var params: [String: String] = [:]
+        for item in url.queryItems ?? [] {
+            if let value = item.value, !value.isEmpty { params[item.name] = value }
+        }
+        guard let apiKey = params["key"] else {
+            pairingError = "The pairing code has no API key."
+            return
+        }
         SharedConfig.apiKey = apiKey
+        if let host = params["local"] { localHost = host }
+        if let host = params["tailscale"] { tailscaleHost = host }
+        if let port = params["ssh_port"] { portStr = port }
         paired = true
         backgroundStatus = BackgroundUpload.configure()
     }
