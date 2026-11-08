@@ -20,6 +20,16 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
   `https://tank2.tail418e84.ts.net` → `http://127.0.0.1:8765`. That URL is the
   `BACKGROUND_UPLOAD_URL_BASE` build setting in the iOS project; iOS refuses background uploads
   to any other host.
+- **Public HTTPS (primary, no VPN needed):** `https://flightlogg.in/media-backup/` on the old
+  flightloggin DigitalOcean droplet (`ssh flightloggin`, Ubuntu 14.04, no passwordless sudo).
+  tank2 is behind Starlink CGNAT, so tank2 keeps a reverse SSH tunnel open to the droplet:
+  `media-backup-tunnel.service` on tank2 (`ssh -R 127.0.0.1:8765:127.0.0.1:8765`, key
+  `~/.ssh/media-backup-tunnel`, restricted to port forwarding in the droplet's
+  `authorized_keys`). nginx there includes `/etc/nginx/media-backup-location.conf` from the
+  flightloggin site; it returns 502 when the tunnel is down. Restart the tunnel with
+  `ssh tank2 sudo -n systemctl restart media-backup-tunnel.service`. The iOS app uses this URL
+  (`BACKGROUND_UPLOAD_URL_BASE`) and falls back to Tailscale (`BACKGROUND_UPLOAD_FALLBACK_URL_BASE`).
+  Planned: move both this and flightloggin to the flightloggin staging server.
 - The upload path is set with `media-backup setup` (saved in tank2's
   `~/.config/media-backup/config.json`). Files land in `<upload path>/<device>/<filename>`; the
   Android app's SFTP Remote Path must be set to the same path.

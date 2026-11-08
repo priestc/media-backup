@@ -44,22 +44,20 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				MediaBackup.entitlements,
 			);
 			target = 9325ACB02F69AE0E0011B5E4 /* MediaBackup */;
-		};
-		CC01DD072F70000000C0FFEE /* Exceptions for "MediaBackup" folder in "MediaBackupUploader" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedConfig.swift,
-			);
-			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
 		};
 		CC01DD062F70000000C0FFEE /* Exceptions for "MediaBackupUploader" folder in "MediaBackupUploader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				MediaBackupUploader.entitlements,
+			);
+			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
+		};
+		CC01DD072F70000000C0FFEE /* Exceptions for "MediaBackup" folder in "MediaBackupUploader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedConfig.swift,
 			);
 			target = CC01DD082F70000000C0FFEE /* MediaBackupUploader */;
 		};
@@ -252,7 +250,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				BACKGROUND_UPLOAD_URL_BASE = "https://tank2.tail418e84.ts.net";
+				BACKGROUND_UPLOAD_FALLBACK_URL_BASE = "https://tank2.tail418e84.ts.net";
+				BACKGROUND_UPLOAD_URL_BASE = "https://flightlogg.in/media-backup";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -317,7 +316,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				BACKGROUND_UPLOAD_URL_BASE = "https://tank2.tail418e84.ts.net";
+				BACKGROUND_UPLOAD_FALLBACK_URL_BASE = "https://tank2.tail418e84.ts.net";
+				BACKGROUND_UPLOAD_URL_BASE = "https://flightlogg.in/media-backup";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -525,8 +525,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-
 	};
 	rootObject = 9325ACA92F69AE0E0011B5E4 /* Project object */;
 }

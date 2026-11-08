@@ -4,6 +4,8 @@
 <dict>
 	<key>BackgroundUploadURLBase</key>
 	<string>$(BACKGROUND_UPLOAD_URL_BASE)</string>
+	<key>BackgroundUploadFallbackURLBase</key>
+	<string>$(BACKGROUND_UPLOAD_FALLBACK_URL_BASE)</string>
 	<key>EXAppExtensionAttributes</key>
 	<dict>
 		<key>EXExtensionPointIdentifier</key>

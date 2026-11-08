@@ -121,15 +121,40 @@ struct SettingsView: View {
         isTesting = true
         testResult = nil
         Task {
-            do {
-                _ = try await ServerAPI.present([])
-                testResult = "✓ Connected to \(serverURL)"
-            } catch ServerAPI.APIError.badStatus(401) {
-                testResult = "The server rejected the key. Run `media-backup pair` and scan the code again."
-            } catch {
-                testResult = "Could not reach \(serverURL): \(error.localizedDescription) Is Tailscale on?"
+            guard let apiKey = SharedConfig.apiKey, !SharedConfig.uploadURLBases.isEmpty else {
+                testResult = "Not set up: pair with the server and set BACKGROUND_UPLOAD_URL_BASE."
+                isTesting = false
+                return
             }
+            // Check every server so a broken fallback shows up before it's needed.
+            var lines: [String] = []
+            for base in SharedConfig.uploadURLBases {
+                let status = await SharedConfig.probe(base, device: UIDevice.current.name, apiKey: apiKey)
+                lines.append(Self.describe(base, status: status))
+            }
+            if let active = await ServerAPI.selectServer() {
+                lines.append("Uploading via \(active.host() ?? active.absoluteString).")
+            }
+            testResult = lines.joined(separator: "\n")
             isTesting = false
+        }
+    }
+
+    private static func describe(_ base: URL, status: Int?) -> String {
+        let host = base.host() ?? base.absoluteString
+        switch status {
+        case let code? where (200..<300).contains(code):
+            return "✓ \(host)"
+        case 401?:
+            return "✗ \(host): the server rejected the key. Run `media-backup pair` and scan the code again."
+        case let code? where [502, 503, 504].contains(code):
+            return "✗ \(host): the proxy answered but tank2 isn't connected to it (HTTP \(code))."
+        case let code?:
+            return "✗ \(host): HTTP \(code)"
+        case nil:
+            return host.hasSuffix(".ts.net")
+                ? "✗ \(host): not reachable. Is Tailscale on?"
+                : "✗ \(host): not reachable."
         }
     }
 }

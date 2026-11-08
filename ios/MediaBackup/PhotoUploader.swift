@@ -72,6 +72,7 @@ class PhotoUploader: ObservableObject {
 
         // Ask the server which of those it already has (e.g. from automatic upload)
         statusMessage = "Checking server…"
+        await ServerAPI.selectServer()
         var pending: [(asset: PHAsset, filename: String)] = []
         do {
             for start in stride(from: 0, to: candidates.count, by: 500) {

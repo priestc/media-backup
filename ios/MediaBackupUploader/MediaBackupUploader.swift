@@ -44,22 +44,34 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
     private static let maxFailures = 3
 
     private func process() async throws -> PHBackgroundResourceUploadProcessingResult {
-        guard let base = SharedConfig.uploadURLBase,
+        guard let lastBase = SharedConfig.uploadURLBase,
               let apiKey = SharedConfig.apiKey,
               let deviceName = defaults.string(forKey: SharedConfig.deviceNameKey) else {
             log.info("not configured; open the app and pair with the server")
             return .completed
         }
+        // Prefer flightlogg.in, fall back to Tailscale; if neither answers, iOS retries later.
+        let base: URL
+        if let reachable = await SharedConfig.findReachableBase(device: deviceName, apiKey: apiKey) {
+            base = reachable
+        } else {
+            log.info("no server reachable right now; using \(lastBase.absoluteString, privacy: .public)")
+            base = lastBase
+        }
         let server = Server(base: base, device: deviceName, apiKey: apiKey)
 
-        // 1. Retry transient failures (timeouts, lost connection) with the same request.
+        // 1. Retry transient failures (timeouts, lost connection), aimed at the server that
+        //    answers now, so jobs that failed on one server move to the other.
         //    Permanent ones (rejected by the server) are acknowledged below instead.
         let retryable = jobs(.retry).filter { Self.isTransient($0.error) }
         if !retryable.isEmpty {
+            let destinations = retryable.map { job in
+                Self.backupFilename(of: job).map { server.putRequest(filename: $0) }
+            }
             do {
                 try await library.performChanges {
-                    for job in retryable {
-                        PHAssetResourceUploadJobChangeRequest(for: job)?.retry(destination: nil)
+                    for (job, destination) in zip(retryable, destinations) {
+                        PHAssetResourceUploadJobChangeRequest(for: job)?.retry(destination: destination)
                     }
                 }
             } catch where Self.isLimitExceeded(error) {
@@ -134,6 +146,12 @@ final class MediaBackupUploader: PHBackgroundResourceUploadJobExtension {
 
         let resyncPending = defaults.bool(forKey: Self.needsResyncKey)
         return queue.isEmpty && !resyncPending ? .completed : .processing
+    }
+
+    /// Server filename of the asset a job uploads; nil if the asset is gone.
+    private static func backupFilename(of job: PHAssetResourceUploadJob) -> String? {
+        guard let id = PHAssetResource.assetResource(forUploadJob: job)?.assetLocalIdentifier else { return nil }
+        return PHAsset.fetchAssets(withLocalIdentifiers: [id], options: nil).firstObject?.backupFilename
     }
 
     private func jobs(_ action: PHAssetResourceUploadJob.Action) -> [PHAssetResourceUploadJob] {
