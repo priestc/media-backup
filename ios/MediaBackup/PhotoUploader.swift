@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import Photos
+import UIKit
 
 @MainActor
 class PhotoUploader: ObservableObject {
@@ -36,13 +37,23 @@ class PhotoUploader: ObservableObject {
 
     /// Uploads every photo and video not yet on the server over HTTPS, the same way the
     /// background uploader does. Catches up on media from before automatic upload was on.
-    func startBackup() async {
+    ///
+    /// With `local`, everything goes straight to the server over the home network (Local Sync)
+    /// instead of through flightlogg.in or Tailscale, and the screen stays on meanwhile.
+    func startBackup(local: Bool = false) async {
         guard !isRunning else { return }
         isRunning     = true
         shouldStop    = false
         uploadedCount = 0
         failedCount   = 0
         totalPending  = 0
+        if local { UIApplication.shared.isIdleTimerDisabled = true }
+        defer {
+            if local {
+                ServerAPI.endLocalSession()
+                UIApplication.shared.isIdleTimerDisabled = false
+            }
+        }
 
         // Photo library authorization
         let auth = PHPhotoLibrary.authorizationStatus(for: .readWrite)
@@ -71,8 +82,19 @@ class PhotoUploader: ObservableObject {
         }
 
         // Ask the server which of those it already has (e.g. from automatic upload)
+        if local {
+            statusMessage = "Finding the server on the local network…"
+            do {
+                _ = try await ServerAPI.startLocalSession()
+            } catch {
+                statusMessage = "Local Sync could not start: \(error.localizedDescription)"
+                isRunning = false
+                return
+            }
+        } else {
+            await ServerAPI.selectServer()
+        }
         statusMessage = "Checking server…"
-        await ServerAPI.selectServer()
         var pending: [(asset: PHAsset, filename: String)] = []
         do {
             for start in stride(from: 0, to: candidates.count, by: 500) {
@@ -93,13 +115,28 @@ class PhotoUploader: ObservableObject {
             return
         }
 
-        totalPending = pending.count
         if pending.isEmpty || shouldStop {
             statusMessage = shouldStop ? "Stopped." : "✓ Everything is backed up."
             isRunning = false
             return
         }
+        await upload(pending)
+    }
 
+    /// Uploads the given recent items the server doesn't have yet (the front screen's Sync Now).
+    func syncNow(_ items: [(asset: PHAsset, filename: String)]) async {
+        guard !isRunning, !items.isEmpty else { return }
+        isRunning     = true
+        shouldStop    = false
+        uploadedCount = 0
+        failedCount   = 0
+        await ServerAPI.selectServer()
+        await upload(items)
+    }
+
+    /// Uploads `pending` one at a time, reporting progress; clears `isRunning` when done.
+    private func upload(_ pending: [(asset: PHAsset, filename: String)]) async {
+        totalPending = pending.count
         for (i, item) in pending.enumerated() {
             if shouldStop { break }
 

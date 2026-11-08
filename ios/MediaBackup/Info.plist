@@ -8,8 +8,15 @@
 	<string>$(BACKGROUND_UPLOAD_URL_BASE)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Used to scan the API key QR code.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Local Sync uploads photos and videos straight to your home server over Wi-Fi.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Used to back up your photos and videos to your home server.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -12,6 +12,19 @@ struct ContentView: View {
             List {
                 if uploader.isRunning {
                     Section { BackupProgress(uploader: uploader) }
+                } else if !notUploaded.isEmpty {
+                    Section {
+                        Button {
+                            let items = notUploaded.map { (asset: $0.asset, filename: $0.filename) }
+                            Task { await uploader.syncNow(items) }
+                        } label: {
+                            Label("Sync Now (\(notUploaded.count))", systemImage: "arrow.up.circle.fill")
+                                .font(.title2.bold())
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .listRowSeparator(.hidden)
+                    }
                 }
 
                 Section(header: Text("Latest")) {
@@ -65,6 +78,11 @@ struct ContentView: View {
                 if !running { Task { await media.refreshServerStatus() } }
             }
         }
+    }
+
+    /// Recent items the server says it doesn't have, oldest first so they upload in order.
+    private var notUploaded: [RecentMedia.Item] {
+        media.items.filter { media.status[$0.id] == .notUploaded }.reversed()
     }
 
     private func deleteButton(_ item: RecentMedia.Item) -> some View {

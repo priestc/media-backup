@@ -6,7 +6,10 @@ import hmac
 import logging
 import os
 import secrets
+import socket
 import tempfile
+import threading
+import time
 
 app = Flask(__name__)
 log = logging.getLogger("media-backup")
@@ -33,16 +36,61 @@ def create_api_key(path: Path) -> str:
     return key
 
 
-def _auth():
-    """Requests carry the API key that `media-backup pair` shows as a QR code.
-    The file is read each time, so pairing doesn't need a restart."""
+def _auth(allow_local_token: bool = True):
+    """Requests carry the API key that `media-backup pair` shows as a QR code, or a Local
+    Sync token from POST /local-sync. The key file is read each time, so pairing doesn't
+    need a restart."""
     header = request.headers.get("Authorization", "")
+    sent = header[7:].strip() if header.startswith("Bearer ") else ""
+    if allow_local_token and sent and _valid_local_token(sent):
+        return
     key = load_api_key(_api_key_file)
-    if key is None or not header.startswith("Bearer ") or \
-            not hmac.compare_digest(header[7:].strip().encode(), key.encode()):
+    if key is None or not sent or not hmac.compare_digest(sent.encode(), key.encode()):
         log.warning("refused %s %s: %s", request.method, request.path,
                     "no API key on server" if key is None else "wrong or missing API key")
         abort(401)
+
+
+# Local Sync: a phone on the home network asks over HTTPS (with the API key) for a short-lived
+# token and the server's LAN address, then uploads straight over the LAN with that token, so
+# big transfers skip Tailscale and the flightlogg.in proxy. The LAN is plain HTTP, which is
+# why the API key itself is never sent there.
+LOCAL_TOKEN_SECONDS = 12 * 3600
+_local_tokens: dict[str, float] = {}   # token -> expiry (time.time())
+_local_tokens_lock = threading.Lock()
+_port = 8765
+
+
+def _valid_local_token(token: str) -> bool:
+    now = time.time()
+    with _local_tokens_lock:
+        for t in [t for t, exp in _local_tokens.items() if exp < now]:
+            del _local_tokens[t]
+        return any(hmac.compare_digest(token.encode(), t.encode()) for t in _local_tokens)
+
+
+def _lan_addresses() -> list[str]:
+    """IPv4 address of the interface with the default route (the home LAN on tank2)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.0.2.1", 9))   # no packet is sent; this just picks the route
+        return [s.getsockname()[0]]
+    except OSError:
+        return []
+    finally:
+        s.close()
+
+
+@app.post("/local-sync")
+def local_sync():
+    """Start a Local Sync session: returns LAN URLs to try and a token that works there."""
+    _auth(allow_local_token=False)
+    token = secrets.token_urlsafe(32)
+    with _local_tokens_lock:
+        _local_tokens[token] = time.time() + LOCAL_TOKEN_SECONDS
+    urls = [f"http://{ip}:{_port}" for ip in _lan_addresses()]
+    log.info("local sync session started; offering %s", ", ".join(urls) or "no LAN address")
+    return jsonify({"urls": urls, "token": token, "expires_in": LOCAL_TOKEN_SECONDS})
 
 
 def _safe_segment(name: str) -> str:
@@ -167,10 +215,11 @@ def status():
 
 def run(upload_dir: str, api_key_file: str, host: str = "0.0.0.0", port: int = 8765,
         cert: str | None = None, key: str | None = None) -> None:
-    global _upload_dir, _api_key_file
+    global _upload_dir, _api_key_file, _port
     # stderr is unbuffered, so lines reach journalctl immediately
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     _upload_dir = Path(upload_dir)
     _upload_dir.mkdir(parents=True, exist_ok=True)
     _api_key_file = Path(api_key_file)
+    _port = port
     app.run(host=host, port=port, ssl_context=(cert, key) if cert else None, threaded=True)

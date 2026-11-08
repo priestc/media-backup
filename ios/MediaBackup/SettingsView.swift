@@ -58,6 +58,18 @@ struct SettingsView: View {
                     .disabled(!paired && !uploader.isRunning)
                 }
 
+                Section(
+                    header: Text("Local Sync"),
+                    footer: Text("For big catch-ups at home, like lots of videos: uploads everything the server doesn't have straight over the home Wi-Fi instead of through flightlogg.in or Tailscale. The screen stays on until it finishes; Stop above ends it.")
+                ) {
+                    Button {
+                        Task { await uploader.startBackup(local: true) }
+                    } label: {
+                        Label("Start Local Sync", systemImage: "wifi")
+                    }
+                    .disabled(!paired || uploader.isRunning)
+                }
+
                 Section {
                     Button(action: testConnection) {
                         if isTesting {
