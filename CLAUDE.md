@@ -16,10 +16,11 @@ other projects are deployed there), see the other CLAUDE.md files in `~/Document
   ssh tank2 "pipx install --force git+https://github.com/priestc/media-backup.git && sudo -n systemctl restart media-backup.service"
   ```
   The restart is allowed without a password via `/etc/sudoers.d/media-backup`.
-- HTTPS comes from Tailscale Serve (`sudo tailscale serve --bg 8765`), which proxies
-  `https://tank2.tail418e84.ts.net` → `http://127.0.0.1:8765`. That URL is the
-  `BACKGROUND_UPLOAD_URL_BASE` build setting in the iOS project; iOS refuses background uploads
-  to any other host.
+- tank2 no longer runs Tailscale (the OpenWrt router is the tailnet's subnet router), so there
+  is no `ts.net` HTTPS URL any more and `BACKGROUND_UPLOAD_FALLBACK_URL_BASE` is empty. The only
+  HTTPS base is `BACKGROUND_UPLOAD_URL_BASE` (the public proxy below); iOS refuses background
+  uploads to any other host. On the LAN (or remotely over Tailscale via the router's subnet
+  route) the server is plain HTTP at `http://192.168.1.190:8765`, which Local Sync uses.
 - **Public HTTPS (primary, no VPN needed):** `https://flightlogg.in/media-backup/` on the old
   flightloggin DigitalOcean droplet (`ssh flightloggin`, Ubuntu 14.04, no passwordless sudo).
   tank2 is behind Starlink CGNAT, so tank2 keeps a reverse SSH tunnel open to the droplet:
